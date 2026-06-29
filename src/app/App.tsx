@@ -1023,105 +1023,133 @@ export default function App() {
         </main>
 
         {/* ── Right panel — brush controls ──────────────────────────────── */}
+        {/* 272px panel → px-4 each side → 240px content — fits all elements without clipping */}
         <aside
           className="border-l border-border bg-card flex-shrink-0 overflow-hidden"
-          style={{ width: rightOpen ? 240 : 0, transition: "width 200ms ease" }}
+          style={{ width: rightOpen ? 272 : 0, transition: "width 200ms ease" }}
         >
-          <div className="w-60 h-full overflow-y-auto p-5">
+          <div className="w-[272px] h-full overflow-y-auto">
+            <div className="px-4 py-5 space-y-0">
 
-            <Section label="Brush">
-              <div className="grid grid-cols-2 gap-1">
-                {([
-                  ["round",       "Round"],
-                  ["inkpen",      "Ink Pen"],
-                  ["calligraphy", "Calligraphy"],
-                  ["ballpoint",   "Ballpoint"],
-                  ["brushpen",    "Brush Pen"],
-                  ["marker",      "Marker"],
-                  ["chisel",      "Chisel"],
-                ] as [BrushType, string][]).map(([t, label]) => (
-                  <button key={t} onClick={() => setBrushType(t)}
-                    className={["flex items-center gap-1.5 px-2 py-2 rounded text-xs transition-all text-left", brushType === t ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"].join(" ")}>
-                    <BrushIcon type={t} active={brushType === t} />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-            </Section>
+              {/* Brush — single column prevents label truncation */}
+              <Section label="Brush">
+                <div className="flex flex-col gap-0.5">
+                  {([
+                    ["round",       "Round"],
+                    ["inkpen",      "Ink Pen"],
+                    ["calligraphy", "Calligraphy"],
+                    ["ballpoint",   "Ballpoint"],
+                    ["brushpen",    "Brush Pen"],
+                    ["marker",      "Marker"],
+                    ["chisel",      "Chisel"],
+                  ] as [BrushType, string][]).map(([t, label]) => (
+                    <button
+                      key={t}
+                      onClick={() => setBrushType(t)}
+                      className={["flex items-center gap-2.5 w-full px-2.5 py-2 rounded text-xs font-medium transition-all",
+                        brushType === t
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground/70 hover:bg-secondary hover:text-foreground",
+                      ].join(" ")}
+                    >
+                      <span className="flex-shrink-0"><BrushIcon type={t} active={brushType === t} /></span>
+                      <span className="flex-1 text-left">{label}</span>
+                      {brushType === t && <span className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              </Section>
 
-            <Section label="Size">
-              <SliderRow value={brushSize} min={4} max={48} step={2}
-                onMinus={() => setBrushSize(v => Math.max(4, v - 2))}
-                onPlus={() => setBrushSize(v => Math.min(48, v + 2))}
-                onChange={setBrushSize} display={`${brushSize}px`} />
-              <div className="flex items-center justify-center h-7 mt-1.5">
-                <div className="bg-foreground rounded-full" style={{ width: brushSize, height: brushSize, maxWidth: 48, maxHeight: 48 }} />
-              </div>
-            </Section>
-
-            <Section label="Stabilizer">
-              <p className="text-[10px] text-muted-foreground mb-2 leading-snug">Lazy brush radius — higher = smoother, slower strokes.</p>
-              <SliderRow value={stabilizer} min={0} max={30} step={1}
-                onMinus={() => setStabilizer(v => Math.max(0, v - 1))}
-                onPlus={() => setStabilizer(v => Math.min(30, v + 1))}
-                onChange={setStabilizer} display={stabilizer === 0 ? "Off" : `${stabilizer}px`} />
-            </Section>
-
-            <Section label="Stroke Quality">
-              <LabeledSlider label="Smoothing"   value={smoothing}   min={0} max={1}    step={0.05} onChange={setSmoothing}   display={`${Math.round(smoothing * 100)}%`} />
-              <LabeledSlider label="Streamline"  value={streamline}  min={0} max={0.99} step={0.05} onChange={setStreamline}  display={`${Math.round(streamline * 100)}%`} hint="Reduces input tremor" />
-              <LabeledSlider label="Thinning"    value={thinning}    min={-1} max={1}   step={0.05} onChange={setThinning}    display={`${Math.round(thinning * 100)}%`}  hint="Pressure → width" />
-              <LabeledSlider label="Taper"       value={taper}       min={0} max={100}  step={5}    onChange={setTaper}       display={taper === 0 ? "Off" : `${taper}`}   hint="End taper length" />
-            </Section>
-
-            <Section label="Opacity">
-              <SliderRow value={opacity} min={0.2} max={1} step={0.05}
-                onMinus={() => setOpacity(v => Math.max(0.2, +(v - 0.05).toFixed(2)))}
-                onPlus={() => setOpacity(v => Math.min(1, +(v + 0.05).toFixed(2)))}
-                onChange={setOpacity} display={`${Math.round(opacity * 100)}%`} />
-            </Section>
-
-            <Section label="Texture">
-              <p className="text-[10px] text-muted-foreground mb-2 leading-snug">
-                Paper grain — simulates ink breaking up on textured paper. Pairs well with Ballpoint.
-              </p>
-              <SliderRow value={grain} min={0} max={100} step={5}
-                onMinus={() => setGrain(v => Math.max(0, v - 5))}
-                onPlus={() => setGrain(v => Math.min(100, v + 5))}
-                onChange={setGrain}
-                display={grain === 0 ? "Off" : `${grain}%`} />
-              {grain > 0 && (
-                <div className="mt-2 h-6 rounded overflow-hidden" style={{ border: "1px solid rgba(28,20,9,0.1)" }}>
+              {/* Size */}
+              <Section label="Size">
+                <SliderRow
+                  value={brushSize} min={4} max={48} step={2}
+                  onMinus={() => setBrushSize(v => Math.max(4, v - 2))}
+                  onPlus={() => setBrushSize(v => Math.min(48, v + 2))}
+                  onChange={setBrushSize} display={`${brushSize}px`}
+                />
+                <div className="flex items-center justify-center mt-2 h-9">
                   <div
-                    className="h-full w-full"
-                    style={{
-                      background: `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4'><rect width='4' height='4' fill='%231c1409'/><rect x='0' y='0' width='1' height='1' fill='%23ffffff' opacity='0.${Math.round(grain * 0.4)}'/><rect x='2' y='2' width='1' height='1' fill='%23ffffff' opacity='0.${Math.round(grain * 0.25)}'/></svg>")`,
-                      opacity: 0.85,
-                    }}
+                    className="rounded-full bg-foreground/75 transition-all duration-150"
+                    style={{ width: Math.min(brushSize, 36), height: Math.min(brushSize, 36) }}
                   />
                 </div>
-              )}
-            </Section>
+              </Section>
 
-            <Section label="Progress">
-              <div className="space-y-2">
-                {CHAR_GROUPS.map(g => {
-                  const n = g.chars.filter(c => (glyphs[activeStyle][c]?.length ?? 0) > 0).length;
-                  return (
-                    <div key={g.label}>
-                      <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5">
-                        <span>{g.label}</span>
-                        <span style={{ fontFamily: "'DM Mono', monospace" }}>{n}/{g.chars.length}</span>
-                      </div>
-                      <div className="h-1 bg-secondary rounded-full overflow-hidden">
-                        <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${(n / g.chars.length) * 100}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </Section>
+              {/* Opacity — moved up so primary controls are grouped together */}
+              <Section label="Opacity">
+                <SliderRow
+                  value={opacity} min={0.2} max={1} step={0.05}
+                  onMinus={() => setOpacity(v => Math.max(0.2, +(v - 0.05).toFixed(2)))}
+                  onPlus={() => setOpacity(v => Math.min(1, +(v + 0.05).toFixed(2)))}
+                  onChange={setOpacity} display={`${Math.round(opacity * 100)}%`}
+                />
+              </Section>
 
+              {/* Stabilizer */}
+              <Section label="Stabilizer">
+                <SliderRow
+                  value={stabilizer} min={0} max={30} step={1}
+                  onMinus={() => setStabilizer(v => Math.max(0, v - 1))}
+                  onPlus={() => setStabilizer(v => Math.min(30, v + 1))}
+                  onChange={setStabilizer} display={stabilizer === 0 ? "Off" : `${stabilizer}px`}
+                />
+                <p className="text-[10px] text-muted-foreground/65 mt-1.5 leading-snug">
+                  Higher = smoother, slower strokes.
+                </p>
+              </Section>
+
+              {/* Stroke Quality — collapsible; advanced settings most users set once */}
+              <Section label="Stroke Quality" collapsible defaultOpen={false}>
+                <LabeledSlider label="Smoothing"  value={smoothing}  min={0}  max={1}    step={0.05} onChange={setSmoothing}  display={`${Math.round(smoothing * 100)}%`} />
+                <LabeledSlider label="Streamline" value={streamline} min={0}  max={0.99} step={0.05} onChange={setStreamline} display={`${Math.round(streamline * 100)}%`} hint="Reduces input tremor" />
+                <LabeledSlider label="Thinning"   value={thinning}   min={-1} max={1}    step={0.05} onChange={setThinning}   display={`${Math.round(thinning * 100)}%`}  hint="Pressure → width" />
+                <LabeledSlider label="Taper"      value={taper}      min={0}  max={100}  step={5}    onChange={setTaper}      display={taper === 0 ? "Off" : `${taper}`}   hint="End taper length" />
+              </Section>
+
+              {/* Texture — collapsible; off by default so panel doesn't feel cluttered */}
+              <Section label="Texture" collapsible defaultOpen={false}>
+                <LabeledSlider
+                  label="Grain"
+                  value={grain} min={0} max={100} step={5}
+                  onChange={setGrain}
+                  display={grain === 0 ? "Off" : `${grain}%`}
+                  hint="Simulates ink on textured paper."
+                />
+                {grain > 0 && (
+                  <div className="mt-2 h-6 rounded overflow-hidden" style={{ border: "1px solid rgba(28,20,9,0.1)" }}>
+                    <div
+                      className="h-full w-full"
+                      style={{
+                        background: `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4'><rect width='4' height='4' fill='%231c1409'/><rect x='0' y='0' width='1' height='1' fill='%23ffffff' opacity='0.${Math.round(grain * 0.4)}'/><rect x='2' y='2' width='1' height='1' fill='%23ffffff' opacity='0.${Math.round(grain * 0.25)}'/></svg>")`,
+                        opacity: 0.85,
+                      }}
+                    />
+                  </div>
+                )}
+              </Section>
+
+              {/* Progress */}
+              <Section label="Progress">
+                <div className="space-y-2.5">
+                  {CHAR_GROUPS.map(g => {
+                    const n = g.chars.filter(c => (glyphs[activeStyle][c]?.length ?? 0) > 0).length;
+                    return (
+                      <div key={g.label}>
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-foreground/70">{g.label}</span>
+                          <span className="text-[10px] tabular-nums text-muted-foreground" style={{ fontFamily: "'DM Mono', monospace" }}>{n}/{g.chars.length}</span>
+                        </div>
+                        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                          <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${(n / g.chars.length) * 100}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Section>
+
+            </div>
           </div>
         </aside>
       </div>
@@ -1131,11 +1159,36 @@ export default function App() {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-function Section({ label, children }: { label: string; children: React.ReactNode }) {
+function Section({
+  label,
+  children,
+  collapsible = false,
+  defaultOpen = true,
+}: {
+  label: string;
+  children: React.ReactNode;
+  collapsible?: boolean;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="mb-5 pb-5 border-b border-border last:border-0 last:mb-0 last:pb-0">
-      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium mb-3">{label}</p>
-      {children}
+    <div className="mb-4 pb-4 border-b border-border last:border-0 last:mb-0 last:pb-0">
+      <div
+        role={collapsible ? "button" : undefined}
+        tabIndex={collapsible ? 0 : undefined}
+        onClick={collapsible ? () => setOpen(v => !v) : undefined}
+        onKeyDown={collapsible ? e => (e.key === "Enter" || e.key === " ") && setOpen(v => !v) : undefined}
+        className={["flex items-center justify-between mb-3", collapsible ? "cursor-pointer select-none group" : ""].join(" ")}
+      >
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">{label}</span>
+        {collapsible && (
+          <ChevronDown
+            size={11}
+            className={["text-muted-foreground/50 group-hover:text-muted-foreground transition-transform duration-150", open ? "rotate-180" : ""].join(" ")}
+          />
+        )}
+      </div>
+      {(!collapsible || open) && children}
     </div>
   );
 }
@@ -1145,11 +1198,28 @@ function SliderRow({ value, min, max, step, onMinus, onPlus, onChange, display }
   onMinus: () => void; onPlus: () => void; onChange: (v: number) => void; display: string;
 }) {
   return (
-    <div className="flex items-center gap-1.5">
-      <button onClick={onMinus} className="w-6 h-6 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground flex-shrink-0"><Minus size={10} /></button>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(+e.target.value)} className="flex-1 h-1 accent-[#c4782a]" />
-      <button onClick={onPlus} className="w-6 h-6 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground flex-shrink-0"><Plus size={10} /></button>
-      <span className="text-[11px] w-8 text-right flex-shrink-0" style={{ fontFamily: "'DM Mono', monospace" }}>{display}</span>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={onMinus}
+        className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Minus size={10} />
+      </button>
+      <input
+        type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(+e.target.value)}
+        className="flex-1 h-1.5 accent-[#c4782a] cursor-pointer"
+      />
+      <button
+        onClick={onPlus}
+        className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Plus size={10} />
+      </button>
+      <span
+        className="text-xs w-9 text-right flex-shrink-0 tabular-nums font-medium text-foreground/75"
+        style={{ fontFamily: "'DM Mono', monospace" }}
+      >{display}</span>
     </div>
   );
 }
@@ -1159,13 +1229,20 @@ function LabeledSlider({ label, value, min, max, step, onChange, display, hint }
   onChange: (v: number) => void; display: string; hint?: string;
 }) {
   return (
-    <div className="mb-3 last:mb-0">
-      <div className="flex justify-between items-center mb-1">
-        <span className="text-xs text-foreground/80">{label}</span>
-        <span className="text-[11px] text-muted-foreground" style={{ fontFamily: "'DM Mono', monospace" }}>{display}</span>
+    <div className="mb-3.5 last:mb-0">
+      <div className="flex items-center justify-between mb-1.5">
+        <span className="text-xs text-foreground/75">{label}</span>
+        <span
+          className="text-[10px] font-medium tabular-nums bg-secondary text-muted-foreground rounded px-1.5 py-0.5"
+          style={{ fontFamily: "'DM Mono', monospace" }}
+        >{display}</span>
       </div>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(+e.target.value)} className="w-full h-1 accent-[#c4782a]" />
-      {hint && <p className="text-[10px] text-muted-foreground mt-0.5 leading-tight">{hint}</p>}
+      <input
+        type="range" min={min} max={max} step={step} value={value}
+        onChange={e => onChange(+e.target.value)}
+        className="w-full h-1.5 accent-[#c4782a] cursor-pointer"
+      />
+      {hint && <p className="text-[10px] text-muted-foreground/60 mt-1 leading-tight">{hint}</p>}
     </div>
   );
 }
