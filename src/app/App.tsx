@@ -3,6 +3,7 @@ import getStroke from "perfect-freehand";
 import {
   Download, Trash2, Undo2, ChevronLeft, ChevronRight,
   Eye, EyeOff, Minus, Plus, Pencil, Type, ChevronDown, ChevronUp,
+  PanelLeft, PanelRight,
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -422,6 +423,8 @@ export default function App() {
   const currentOpts    = useRef<PFOptions | null>(null);
   const currentOpacRef = useRef(1);
   const currentBrushTR = useRef<BrushType>("round");
+  // Tracks the CSS display scale of the canvas (rendered width / internal width)
+  const canvasDisplayScale = useRef(1);
 
   // Drawing state
   const [glyphs, setGlyphs]       = useState<StyleGlyphs>(EMPTY_STYLE_GLYPHS);
@@ -441,6 +444,10 @@ export default function App() {
   const [templateFont, setTemplateFont]   = useState<string | undefined>(undefined);
   const [templateFontLabel, setTemplateFontLabel] = useState<string | undefined>(undefined);
   const [fontName, setFontName]   = useState("My Handwriting");
+
+  // Sidebar open/closed — default open on large screens
+  const [leftOpen, setLeftOpen]   = useState(() => window.innerWidth >= 1024);
+  const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= 1024);
 
   // Lazy indicator
   const [showDot, setShowDot]   = useState(false);
@@ -535,6 +542,8 @@ export default function App() {
     for (const evt of events) {
       const rect = activeRef.current!.getBoundingClientRect();
       const sx = CW / rect.width, sy = CH / rect.height;
+      // Keep display scale in sync so the lazy-brush dot renders at correct CSS size
+      canvasDisplayScale.current = rect.width / CW;
       const px = (evt.clientX - rect.left) * sx;
       const py = (evt.clientY - rect.top)  * sy;
       const pressure = evt.pressure > 0 ? evt.pressure : 0.5;
@@ -683,7 +692,7 @@ export default function App() {
     a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
-  }, [glyphs, fontName, activeStyle]);
+  }, [glyphs, fontName, activeStyle, letterSpacing]);
 
   const downloadAllStyles = useCallback(async () => {
     for (const { key } of FONT_STYLES) {
@@ -697,23 +706,40 @@ export default function App() {
   const drawnCount = Object.values(glyphs[activeStyle]).filter(s => s.length > 0).length;
   const regularDrawnCount = Object.values(glyphs.regular).filter(s => s.length > 0).length;
 
+  // Lazy-brush dot radius in CSS pixels (accounts for canvas CSS scaling)
+  const dotRadius = stabilizer * canvasDisplayScale.current;
+
   return (
     <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header className="border-b border-border bg-card px-5 py-2.5 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
+      <header className="border-b border-border bg-card px-3 sm:px-5 py-2 flex items-center justify-between gap-2 flex-shrink-0 min-w-0">
+
+        {/* Left group */}
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            onClick={() => setLeftOpen(v => !v)}
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded border border-border hover:bg-secondary transition-all text-muted-foreground hover:text-foreground"
+            title="Toggle character panel"
+          >
+            <PanelLeft size={14} />
+          </button>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
             <Pencil size={14} className="text-accent" />
-            <span className="text-base font-semibold tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>Font Studio</span>
+            <span className="text-base font-semibold tracking-tight hidden sm:inline" style={{ fontFamily: "'Playfair Display', serif" }}>Font Studio</span>
           </div>
-          <span className="text-border text-lg select-none">|</span>
-          <input value={fontName} onChange={e => setFontName(e.target.value)}
-            className="bg-transparent text-sm text-muted-foreground outline-none border-b border-transparent hover:border-border focus:border-accent transition-colors px-0 py-0.5 w-44"
-            placeholder="Font name…" />
+          <span className="text-border text-lg select-none hidden sm:inline">|</span>
+          <input
+            value={fontName}
+            onChange={e => setFontName(e.target.value)}
+            className="bg-transparent text-sm text-muted-foreground outline-none border-b border-transparent hover:border-border focus:border-accent transition-colors px-0 py-0.5 min-w-0 w-28 sm:w-40 hidden sm:block"
+            placeholder="Font name…"
+          />
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground mr-1">{drawnCount}/{ALL_CHARS.length} glyphs</span>
+
+        {/* Right group */}
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span className="text-xs text-muted-foreground hidden lg:inline">{drawnCount}/{ALL_CHARS.length}</span>
 
           {/* Hidden font file input */}
           <input
@@ -724,70 +750,99 @@ export default function App() {
             onChange={handleFontUpload}
           />
 
-          {/* Template font import */}
-          <div className="flex items-center rounded border border-border overflow-hidden">
+          {/* Template font import — hidden on small screens */}
+          <div className="hidden md:flex items-center rounded border border-border overflow-hidden">
             <button
               onClick={() => setShowTemplate(v => !v)}
               className={["flex items-center gap-1 text-xs px-2.5 py-1.5 transition-all", showTemplate ? "text-foreground bg-secondary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"].join(" ")}
             >
               {showTemplate ? <Eye size={12} /> : <EyeOff size={12} />}
-              {templateFontLabel ? <span className="max-w-[80px] truncate">{templateFontLabel}</span> : "Template"}
+              {templateFontLabel ? <span className="max-w-[72px] truncate">{templateFontLabel}</span> : "Template"}
             </button>
             <button
               onClick={() => fontInputRef.current?.click()}
               className="text-[10px] text-muted-foreground hover:text-accent px-2 py-1.5 border-l border-border hover:bg-secondary transition-all"
               title="Import your own font as template"
             >
-              {templateFontLabel ? "change" : "import font"}
+              {templateFontLabel ? "change" : "import"}
             </button>
           </div>
-          <button onClick={() => setShowGuides(v => !v)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded border border-border hover:border-foreground/25 transition-all">
-            {showGuides ? <Eye size={12} /> : <EyeOff size={12} />} Guides
+
+          {/* Guides toggle — hidden on small screens */}
+          <button
+            onClick={() => setShowGuides(v => !v)}
+            className="hidden md:flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2.5 py-1.5 rounded border border-border hover:border-foreground/25 transition-all"
+          >
+            {showGuides ? <Eye size={12} /> : <EyeOff size={12} />}
+            <span className="hidden lg:inline">Guides</span>
           </button>
+
+          {/* Download */}
           <div className="flex items-center rounded overflow-hidden">
-            <button onClick={() => downloadFont()} className="flex items-center gap-1.5 text-sm font-medium bg-accent text-white px-3.5 py-1.5 hover:bg-accent/90 active:scale-95 transition-all">
-              <Download size={13} /> {FONT_STYLES.find(s => s.key === activeStyle)!.label}
+            <button
+              onClick={() => downloadFont()}
+              className="flex items-center gap-1.5 text-xs sm:text-sm font-medium bg-accent text-white px-2.5 sm:px-3.5 py-1.5 hover:bg-accent/90 active:scale-95 transition-all"
+            >
+              <Download size={13} />
+              <span className="hidden sm:inline">{FONT_STYLES.find(s => s.key === activeStyle)!.label}</span>
             </button>
-            <button onClick={downloadAllStyles} className="text-xs bg-accent/80 text-white px-2 py-1.5 border-l border-white/20 hover:bg-accent transition-all" title="Download all styles">
+            <button
+              onClick={downloadAllStyles}
+              className="text-xs bg-accent/80 text-white px-2 py-1.5 border-l border-white/20 hover:bg-accent transition-all"
+              title="Download all styles"
+            >
               All
             </button>
           </div>
+
+          <button
+            onClick={() => setRightOpen(v => !v)}
+            className="flex-shrink-0 w-7 h-7 flex items-center justify-center rounded border border-border hover:bg-secondary transition-all text-muted-foreground hover:text-foreground"
+            title="Toggle brush panel"
+          >
+            <PanelRight size={14} />
+          </button>
         </div>
       </header>
 
       <div className="flex flex-1 min-h-0">
 
         {/* ── Left sidebar ──────────────────────────────────────────────── */}
-        <aside className="w-52 border-r border-border bg-card overflow-y-auto flex-shrink-0 py-4">
-          {CHAR_GROUPS.map(group => (
-            <div key={group.label} className="mb-5 px-3">
-              <div className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-2 px-1">{group.label}</div>
-              <div className="flex flex-wrap gap-1">
-                {group.chars.map(char => {
-                  const drawn = (glyphs[activeStyle][char]?.length ?? 0) > 0;
-                  const active = char === currentChar;
-                  return (
-                    <button key={char} onClick={() => { setCurrentChar(char); currentPoints.current = []; isDrawing.current = false; }}
-                      className={["relative w-8 h-8 text-sm rounded font-medium transition-all", active ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"].join(" ")}
-                      style={{ fontFamily: "'DM Mono', monospace" }}>
-                      {char}
-                      {drawn && !active && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-accent" />}
-                    </button>
-                  );
-                })}
+        <aside
+          className="border-r border-border bg-card flex-shrink-0 overflow-hidden"
+          style={{ width: leftOpen ? 208 : 0, transition: "width 200ms ease" }}
+        >
+          <div className="w-52 h-full overflow-y-auto py-4">
+            {CHAR_GROUPS.map(group => (
+              <div key={group.label} className="mb-5 px-3">
+                <div className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-2 px-1">{group.label}</div>
+                <div className="flex flex-wrap gap-1">
+                  {group.chars.map(char => {
+                    const drawn = (glyphs[activeStyle][char]?.length ?? 0) > 0;
+                    const active = char === currentChar;
+                    return (
+                      <button key={char} onClick={() => { setCurrentChar(char); currentPoints.current = []; isDrawing.current = false; }}
+                        className={["relative w-8 h-8 text-sm rounded font-medium transition-all", active ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"].join(" ")}
+                        style={{ fontFamily: "'DM Mono', monospace" }}>
+                        {char}
+                        {drawn && !active && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-accent" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </aside>
 
         {/* ── Center ────────────────────────────────────────────────────── */}
-        <main className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-background">
+        <main className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-background min-w-0">
 
           {/* Drawing area */}
-          <div className="flex-shrink-0 flex flex-col items-center px-6 pt-4 pb-2 gap-3">
+          <div className="flex-shrink-0 flex flex-col items-center px-4 sm:px-6 pt-4 pb-2 gap-3">
 
             {/* Style selector */}
-            <div className="flex items-center gap-1.5 self-stretch justify-center">
+            <div className="flex flex-wrap items-center gap-1.5 self-stretch justify-center">
               {FONT_STYLES.map(({ key, label }) => {
                 const count = Object.values(glyphs[key]).filter(s => s.length > 0).length;
                 const isActive = key === activeStyle;
@@ -828,20 +883,42 @@ export default function App() {
               </button>
             </div>
 
-            {/* Two-canvas stack */}
-            <div className="relative rounded overflow-hidden flex-shrink-0 shadow-md"
-              style={{ width: CW, height: CH, border: "1px solid rgba(28,20,9,0.14)" }}>
-              <canvas ref={committedRef} width={CW} height={CH}
-                style={{ position: "absolute", top: 0, left: 0, width: CW, height: CH, pointerEvents: "none" }} />
-              <canvas ref={activeRef} width={CW} height={CH}
-                style={{ position: "absolute", top: 0, left: 0, width: CW, height: CH, touchAction: "none", cursor: "crosshair" }}
+            {/* Two-canvas stack — scales to available width, max 420px */}
+            <div
+              className="relative rounded overflow-hidden w-full mx-auto shadow-md"
+              style={{
+                maxWidth: CW,
+                aspectRatio: `${CW} / ${CH}`,
+                border: "1px solid rgba(28,20,9,0.14)",
+              }}
+            >
+              <canvas
+                ref={committedRef}
+                width={CW}
+                height={CH}
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+              />
+              <canvas
+                ref={activeRef}
+                width={CW}
+                height={CH}
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", touchAction: "none", cursor: "crosshair" }}
                 onPointerDown={onPointerDown}
                 onPointerMove={onPointerMove}
                 onPointerUp={onPointerUp}
-                onPointerLeave={() => { setShowDot(false); if (isDrawing.current) onPointerUp(); }} />
+                onPointerLeave={() => { setShowDot(false); if (isDrawing.current) onPointerUp(); }}
+              />
               {showDot && stabilizer > 0 && (
-                <div className="pointer-events-none absolute rounded-full border border-accent/60"
-                  style={{ width: stabilizer * 2, height: stabilizer * 2, left: dotPos.x - stabilizer, top: dotPos.y - stabilizer, backgroundColor: "rgba(196,120,42,0.05)" }} />
+                <div
+                  className="pointer-events-none absolute rounded-full border border-accent/60"
+                  style={{
+                    width: dotRadius * 2,
+                    height: dotRadius * 2,
+                    left: dotPos.x - dotRadius,
+                    top: dotPos.y - dotRadius,
+                    backgroundColor: "rgba(196,120,42,0.05)",
+                  }}
+                />
               )}
             </div>
 
@@ -869,10 +946,10 @@ export default function App() {
                 {showPreview ? <ChevronUp size={13} className="text-muted-foreground" /> : <ChevronDown size={13} className="text-muted-foreground" />}
               </button>
               {showPreview && (
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3 flex-wrap justify-end">
                   {/* Font size */}
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Size</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest hidden sm:inline">Size</span>
                     <button onClick={() => setPreviewSize(v => Math.max(16, v - 4))} className="w-5 h-5 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground">
                       <Minus size={9} />
                     </button>
@@ -883,14 +960,14 @@ export default function App() {
                   </div>
                   {/* Letter spacing */}
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest">Spacing</span>
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest hidden sm:inline">Spacing</span>
                     <button onClick={() => setLetterSpacing(v => Math.max(-100, v - 10))} className="w-5 h-5 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground">
                       <Minus size={9} />
                     </button>
                     <input
                       type="range" min={-100} max={300} step={10} value={letterSpacing}
                       onChange={e => setLetterSpacing(+e.target.value)}
-                      className="w-20 h-1 accent-[#c4782a]"
+                      className="w-16 sm:w-20 h-1 accent-[#c4782a]"
                     />
                     <button onClick={() => setLetterSpacing(v => Math.min(300, v + 10))} className="w-5 h-5 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground">
                       <Plus size={9} />
@@ -946,101 +1023,106 @@ export default function App() {
         </main>
 
         {/* ── Right panel — brush controls ──────────────────────────────── */}
-        <aside className="w-60 border-l border-border bg-card flex-shrink-0 p-5 overflow-y-auto">
+        <aside
+          className="border-l border-border bg-card flex-shrink-0 overflow-hidden"
+          style={{ width: rightOpen ? 240 : 0, transition: "width 200ms ease" }}
+        >
+          <div className="w-60 h-full overflow-y-auto p-5">
 
-          <Section label="Brush">
-            <div className="grid grid-cols-2 gap-1">
-              {([
-                ["round",       "Round"],
-                ["inkpen",      "Ink Pen"],
-                ["calligraphy", "Calligraphy"],
-                ["ballpoint",   "Ballpoint"],
-                ["brushpen",    "Brush Pen"],
-                ["marker",      "Marker"],
-                ["chisel",      "Chisel"],
-              ] as [BrushType, string][]).map(([t, label]) => (
-                <button key={t} onClick={() => setBrushType(t)}
-                  className={["flex items-center gap-1.5 px-2 py-2 rounded text-xs transition-all text-left", brushType === t ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"].join(" ")}>
-                  <BrushIcon type={t} active={brushType === t} />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
-          </Section>
-
-          <Section label="Size">
-            <SliderRow value={brushSize} min={4} max={48} step={2}
-              onMinus={() => setBrushSize(v => Math.max(4, v - 2))}
-              onPlus={() => setBrushSize(v => Math.min(48, v + 2))}
-              onChange={setBrushSize} display={`${brushSize}px`} />
-            <div className="flex items-center justify-center h-7 mt-1.5">
-              <div className="bg-foreground rounded-full" style={{ width: brushSize, height: brushSize, maxWidth: 48, maxHeight: 48 }} />
-            </div>
-          </Section>
-
-          <Section label="Stabilizer">
-            <p className="text-[10px] text-muted-foreground mb-2 leading-snug">Lazy brush radius — higher = smoother, slower strokes.</p>
-            <SliderRow value={stabilizer} min={0} max={30} step={1}
-              onMinus={() => setStabilizer(v => Math.max(0, v - 1))}
-              onPlus={() => setStabilizer(v => Math.min(30, v + 1))}
-              onChange={setStabilizer} display={stabilizer === 0 ? "Off" : `${stabilizer}px`} />
-          </Section>
-
-          <Section label="Stroke Quality">
-            <LabeledSlider label="Smoothing"   value={smoothing}   min={0} max={1}    step={0.05} onChange={setSmoothing}   display={`${Math.round(smoothing * 100)}%`} />
-            <LabeledSlider label="Streamline"  value={streamline}  min={0} max={0.99} step={0.05} onChange={setStreamline}  display={`${Math.round(streamline * 100)}%`} hint="Reduces input tremor" />
-            <LabeledSlider label="Thinning"    value={thinning}    min={-1} max={1}   step={0.05} onChange={setThinning}    display={`${Math.round(thinning * 100)}%`}  hint="Pressure → width" />
-            <LabeledSlider label="Taper"       value={taper}       min={0} max={100}  step={5}    onChange={setTaper}       display={taper === 0 ? "Off" : `${taper}`}   hint="End taper length" />
-          </Section>
-
-          <Section label="Opacity">
-            <SliderRow value={opacity} min={0.2} max={1} step={0.05}
-              onMinus={() => setOpacity(v => Math.max(0.2, +(v - 0.05).toFixed(2)))}
-              onPlus={() => setOpacity(v => Math.min(1, +(v + 0.05).toFixed(2)))}
-              onChange={setOpacity} display={`${Math.round(opacity * 100)}%`} />
-          </Section>
-
-          <Section label="Texture">
-            <p className="text-[10px] text-muted-foreground mb-2 leading-snug">
-              Paper grain — simulates ink breaking up on textured paper. Pairs well with Ballpoint.
-            </p>
-            <SliderRow value={grain} min={0} max={100} step={5}
-              onMinus={() => setGrain(v => Math.max(0, v - 5))}
-              onPlus={() => setGrain(v => Math.min(100, v + 5))}
-              onChange={setGrain}
-              display={grain === 0 ? "Off" : `${grain}%`} />
-            {grain > 0 && (
-              <div className="mt-2 h-6 rounded overflow-hidden" style={{ border: "1px solid rgba(28,20,9,0.1)" }}>
-                <div
-                  className="h-full w-full"
-                  style={{
-                    background: `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4'><rect width='4' height='4' fill='%231c1409'/><rect x='0' y='0' width='1' height='1' fill='%23ffffff' opacity='0.${Math.round(grain * 0.4)}'/><rect x='2' y='2' width='1' height='1' fill='%23ffffff' opacity='0.${Math.round(grain * 0.25)}'/></svg>")`,
-                    opacity: 0.85,
-                  }}
-                />
+            <Section label="Brush">
+              <div className="grid grid-cols-2 gap-1">
+                {([
+                  ["round",       "Round"],
+                  ["inkpen",      "Ink Pen"],
+                  ["calligraphy", "Calligraphy"],
+                  ["ballpoint",   "Ballpoint"],
+                  ["brushpen",    "Brush Pen"],
+                  ["marker",      "Marker"],
+                  ["chisel",      "Chisel"],
+                ] as [BrushType, string][]).map(([t, label]) => (
+                  <button key={t} onClick={() => setBrushType(t)}
+                    className={["flex items-center gap-1.5 px-2 py-2 rounded text-xs transition-all text-left", brushType === t ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"].join(" ")}>
+                    <BrushIcon type={t} active={brushType === t} />
+                    <span>{label}</span>
+                  </button>
+                ))}
               </div>
-            )}
-          </Section>
+            </Section>
 
-          <Section label="Progress">
-            <div className="space-y-2">
-              {CHAR_GROUPS.map(g => {
-                const n = g.chars.filter(c => (glyphs[activeStyle][c]?.length ?? 0) > 0).length;
-                return (
-                  <div key={g.label}>
-                    <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5">
-                      <span>{g.label}</span>
-                      <span style={{ fontFamily: "'DM Mono', monospace" }}>{n}/{g.chars.length}</span>
-                    </div>
-                    <div className="h-1 bg-secondary rounded-full overflow-hidden">
-                      <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${(n / g.chars.length) * 100}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </Section>
+            <Section label="Size">
+              <SliderRow value={brushSize} min={4} max={48} step={2}
+                onMinus={() => setBrushSize(v => Math.max(4, v - 2))}
+                onPlus={() => setBrushSize(v => Math.min(48, v + 2))}
+                onChange={setBrushSize} display={`${brushSize}px`} />
+              <div className="flex items-center justify-center h-7 mt-1.5">
+                <div className="bg-foreground rounded-full" style={{ width: brushSize, height: brushSize, maxWidth: 48, maxHeight: 48 }} />
+              </div>
+            </Section>
 
+            <Section label="Stabilizer">
+              <p className="text-[10px] text-muted-foreground mb-2 leading-snug">Lazy brush radius — higher = smoother, slower strokes.</p>
+              <SliderRow value={stabilizer} min={0} max={30} step={1}
+                onMinus={() => setStabilizer(v => Math.max(0, v - 1))}
+                onPlus={() => setStabilizer(v => Math.min(30, v + 1))}
+                onChange={setStabilizer} display={stabilizer === 0 ? "Off" : `${stabilizer}px`} />
+            </Section>
+
+            <Section label="Stroke Quality">
+              <LabeledSlider label="Smoothing"   value={smoothing}   min={0} max={1}    step={0.05} onChange={setSmoothing}   display={`${Math.round(smoothing * 100)}%`} />
+              <LabeledSlider label="Streamline"  value={streamline}  min={0} max={0.99} step={0.05} onChange={setStreamline}  display={`${Math.round(streamline * 100)}%`} hint="Reduces input tremor" />
+              <LabeledSlider label="Thinning"    value={thinning}    min={-1} max={1}   step={0.05} onChange={setThinning}    display={`${Math.round(thinning * 100)}%`}  hint="Pressure → width" />
+              <LabeledSlider label="Taper"       value={taper}       min={0} max={100}  step={5}    onChange={setTaper}       display={taper === 0 ? "Off" : `${taper}`}   hint="End taper length" />
+            </Section>
+
+            <Section label="Opacity">
+              <SliderRow value={opacity} min={0.2} max={1} step={0.05}
+                onMinus={() => setOpacity(v => Math.max(0.2, +(v - 0.05).toFixed(2)))}
+                onPlus={() => setOpacity(v => Math.min(1, +(v + 0.05).toFixed(2)))}
+                onChange={setOpacity} display={`${Math.round(opacity * 100)}%`} />
+            </Section>
+
+            <Section label="Texture">
+              <p className="text-[10px] text-muted-foreground mb-2 leading-snug">
+                Paper grain — simulates ink breaking up on textured paper. Pairs well with Ballpoint.
+              </p>
+              <SliderRow value={grain} min={0} max={100} step={5}
+                onMinus={() => setGrain(v => Math.max(0, v - 5))}
+                onPlus={() => setGrain(v => Math.min(100, v + 5))}
+                onChange={setGrain}
+                display={grain === 0 ? "Off" : `${grain}%`} />
+              {grain > 0 && (
+                <div className="mt-2 h-6 rounded overflow-hidden" style={{ border: "1px solid rgba(28,20,9,0.1)" }}>
+                  <div
+                    className="h-full w-full"
+                    style={{
+                      background: `url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='4' height='4'><rect width='4' height='4' fill='%231c1409'/><rect x='0' y='0' width='1' height='1' fill='%23ffffff' opacity='0.${Math.round(grain * 0.4)}'/><rect x='2' y='2' width='1' height='1' fill='%23ffffff' opacity='0.${Math.round(grain * 0.25)}'/></svg>")`,
+                      opacity: 0.85,
+                    }}
+                  />
+                </div>
+              )}
+            </Section>
+
+            <Section label="Progress">
+              <div className="space-y-2">
+                {CHAR_GROUPS.map(g => {
+                  const n = g.chars.filter(c => (glyphs[activeStyle][c]?.length ?? 0) > 0).length;
+                  return (
+                    <div key={g.label}>
+                      <div className="flex justify-between text-[10px] text-muted-foreground mb-0.5">
+                        <span>{g.label}</span>
+                        <span style={{ fontFamily: "'DM Mono', monospace" }}>{n}/{g.chars.length}</span>
+                      </div>
+                      <div className="h-1 bg-secondary rounded-full overflow-hidden">
+                        <div className="h-full bg-accent rounded-full transition-all duration-300" style={{ width: `${(n / g.chars.length) * 100}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </Section>
+
+          </div>
         </aside>
       </div>
     </div>
