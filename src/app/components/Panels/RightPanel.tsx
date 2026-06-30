@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import {
   ConnectedScriptSection,
   BrushSection,
@@ -10,6 +11,7 @@ import type { BrushSettings, BrushSettingsActions, ScriptMode } from "@/types";
 
 interface RightPanelProps {
   isOpen: boolean;
+  onClose: () => void;
   brushSettings: BrushSettings;
   brushActions: BrushSettingsActions;
   scriptMode: ScriptMode;
@@ -26,6 +28,7 @@ interface RightPanelProps {
 
 export function RightPanel({
   isOpen,
+  onClose,
   brushSettings,
   brushActions,
   scriptMode,
@@ -53,6 +56,12 @@ export function RightPanel({
     >
       <div className="panel-scroll w-[272px]">
         <div className="px-4 py-5">
+          <div className="flex items-center justify-between mb-4">
+            <span className="label-caps">Brush & settings</span>
+            <button onClick={onClose} className="btn btn-icon-sm btn-ghost" aria-label="Close panel">
+              <X size={13} />
+            </button>
+          </div>
           {/* ── Drawing tool ───────────────────────────────── */}
           <BrushSection brushType={brushType} onBrushTypeChange={setBrushType} />
           <BrushSettingsSection

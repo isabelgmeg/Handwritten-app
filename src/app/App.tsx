@@ -462,6 +462,7 @@ export default function App() {
 
           <LeftPanel
             isOpen={layoutState.leftOpen}
+            onClose={() => layoutState.setLeftOpen(false)}
             glyphs={glyphs}
             activeStyle={canvasState.activeStyle}
             currentChar={canvasState.currentChar}
@@ -625,6 +626,7 @@ export default function App() {
 
           <RightPanel
             isOpen={layoutState.rightOpen}
+            onClose={() => layoutState.setRightOpen(false)}
             brushSettings={brushSettings.settings}
             brushActions={brushSettings.actions}
             scriptMode={canvasState.scriptMode}

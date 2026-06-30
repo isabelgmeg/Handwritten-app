@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import type { FontStyle, StyleGlyphs } from "@/types";
 import { CHAR_GROUPS } from "@/constants";
 
@@ -7,6 +8,7 @@ interface LeftPanelProps {
   activeStyle: FontStyle;
   currentChar: string;
   onCharSelect: (char: string) => void;
+  onClose: () => void;
 }
 
 export function LeftPanel({
@@ -15,6 +17,7 @@ export function LeftPanel({
   activeStyle,
   currentChar,
   onCharSelect,
+  onClose,
 }: LeftPanelProps) {
   return (
     <aside
@@ -26,6 +29,12 @@ export function LeftPanel({
       }}
     >
       <div className="panel-scroll w-52 py-4">
+        <div className="flex items-center justify-between px-3 mb-3">
+          <span className="label-caps">Characters</span>
+          <button onClick={onClose} className="btn btn-icon-sm btn-ghost" aria-label="Close panel">
+            <X size={13} />
+          </button>
+        </div>
         {CHAR_GROUPS.map((group) => (
           <div key={group.label} className="mb-5 px-3">
             <div className="label-caps mb-2 px-1">{group.label}</div>
