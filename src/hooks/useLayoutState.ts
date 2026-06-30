@@ -4,25 +4,21 @@
 
 import { useState, useCallback } from "react";
 
-const OVERLAY_BREAKPOINT = 1024;
-
 export function useLayoutState() {
-  const [leftOpen, setLeftOpen] = useState(() => window.innerWidth >= OVERLAY_BREAKPOINT);
-  const [rightOpen, setRightOpen] = useState(() => window.innerWidth >= OVERLAY_BREAKPOINT);
+  const [leftOpen, setLeftOpen] = useState(false);
+  const [rightOpen, setRightOpen] = useState(false);
 
   const toggleLeft = useCallback(() => {
     setLeftOpen(v => {
-      const opening = !v;
-      if (opening && window.innerWidth < OVERLAY_BREAKPOINT) setRightOpen(false);
-      return opening;
+      if (!v) setRightOpen(false);
+      return !v;
     });
   }, []);
 
   const toggleRight = useCallback(() => {
     setRightOpen(v => {
-      const opening = !v;
-      if (opening && window.innerWidth < OVERLAY_BREAKPOINT) setLeftOpen(false);
-      return opening;
+      if (!v) setLeftOpen(false);
+      return !v;
     });
   }, []);
 

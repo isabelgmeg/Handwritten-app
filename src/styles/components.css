@@ -83,6 +83,24 @@
     }
   }
 
+  /* Neumorphic CTA — raised surface with accent text, no color fill */
+  .btn-neu-accent {
+    background-color: var(--background);
+    color: var(--accent);
+    box-shadow: var(--shadow-neu-raised-sm);
+
+    &:hover:not(:disabled) {
+      color: var(--accent);
+      box-shadow: var(--shadow-neu-raised-md);
+    }
+
+    &:active:not(:disabled) {
+      background: var(--neu-gradient-pressed);
+      box-shadow: var(--shadow-neu-inset-xs);
+      transform: scale(0.99);
+    }
+  }
+
   /* Dark CTA — editorial, no neumorphism */
   .btn-primary {
     background-color: var(--foreground);
@@ -663,6 +681,193 @@
      Same background as the page — neumorphism needs one surface.
      A barely-visible edge line provides the only spatial boundary.
   ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     LOVE LETTER PREVIEW CARD
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* ── Note inputs (TO / DATE / MESSAGE) — sit above the card ─────────────── */
+
+  .note-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+
+  .note-input-row {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .note-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+  }
+
+  .note-input-label {
+    font-size: 0.5625rem;
+    letter-spacing: 0.14em;
+    font-weight: var(--font-weight-bold);
+    text-transform: uppercase;
+    color: var(--color-mark-base);
+    opacity: 0.55;
+  }
+
+  .note-input-field {
+    width: 100%;
+    font-size: 0.875rem;
+    font-family: var(--font-display);
+    font-style: italic;
+    color: var(--accent);
+    background-color: var(--background);
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.5rem 0.875rem;
+    outline: none;
+    box-shadow: var(--shadow-neu-inset-sm);
+    transition: box-shadow var(--transition-fast);
+
+    &::placeholder { color: var(--color-text-ghost); font-style: italic; }
+
+    &:focus {
+      box-shadow:
+        var(--shadow-neu-inset-sm),
+        0 0 0 2px var(--color-mark-ghost);
+    }
+  }
+
+  /* ── Love letter card ────────────────────────────────────────────────────── */
+
+  .love-letter-card {
+    position: relative;
+    background-color: var(--color-note-surface);
+
+    /* Paper grain + directional light — both blended only into the background,
+       leaving text and canvas completely unaffected */
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E"),
+      linear-gradient(152deg, oklch(1 0 0 / 0.08) 0%, transparent 42%, oklch(0 0 0 / 0.04) 100%);
+    background-blend-mode: soft-light, normal;
+    background-repeat: repeat, no-repeat;
+    background-size: 180px 180px, 100% 100%;
+
+    border-radius: var(--radius-lg);
+    padding: 1.75rem 2rem;
+    /* Extra headroom so the tape strip doesn't clip into the inputs above */
+    margin-top: 3rem;
+
+    /* Casual placement rotation — makes it read as a physical object on a surface */
+    transform: rotate(-0.4deg);
+
+    /* Paper lift: tight edge shadow + wide ambient spread + slight curl bias + top-edge thickness highlight */
+    box-shadow:
+      inset 0 1px 0 oklch(1 0 0 / 0.22),
+      0 1px 1px oklch(0 0 0 / 0.06),
+      0 3px 10px oklch(0 0 0 / 0.09),
+      0 10px 30px oklch(0 0 0 / 0.08),
+      3px 8px 20px oklch(0 0 0 / 0.05);
+
+    font-family: var(--font-display);
+    color: var(--color-mark-base);
+
+  }
+
+  .love-letter-tape {
+    position: absolute;
+    top: -75px;
+    left: 50%;
+    transform: translateX(-50%) rotate(-50deg);
+    width: 140px;
+    pointer-events: none;
+    z-index: 10;
+    filter: drop-shadow(0 2px 5px oklch(0 0 0 / 0.22));
+  }
+
+  .love-letter-note-header {
+    font-size: calc(1.75rem * var(--letter-scale, 1));
+    font-weight: var(--font-weight-bold);
+    letter-spacing: 0.18em;
+    line-height: 1;
+    margin-bottom: 0.75rem;
+  }
+
+  .love-letter-rule {
+    height: 1px;
+    background-color: var(--color-mark-base);
+    opacity: 0.3;
+    margin-bottom: 0.75rem;
+  }
+
+  .love-letter-fields {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.75rem;
+    gap: 1rem;
+  }
+
+  .love-letter-field {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+  }
+
+  .love-letter-label {
+    font-size: 0.625rem;
+    letter-spacing: 0.14em;
+    font-weight: var(--font-weight-bold);
+    opacity: 0.55;
+    text-transform: uppercase;
+  }
+
+  .love-letter-field-value {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: calc(0.9375rem * var(--letter-scale, 1));
+  }
+
+  .love-letter-body-box {
+    border: 1px solid oklch(from var(--color-mark-base) l c h / 0.28);
+    border-radius: var(--radius-sm);
+    padding: 1.25rem 1rem 0.75rem;
+    min-height: 100px;
+    margin-bottom: 1.25rem;
+
+    /* Strip neumorphic inset from preview-wrapper; apply multiply blend to canvas */
+    & .preview-wrapper {
+      box-shadow: none;
+      border-radius: 0;
+    }
+
+    & canvas {
+      mix-blend-mode: multiply;
+    }
+  }
+
+  .love-letter-footer {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+  }
+
+  .love-letter-footer-dash {
+    flex: 1;
+    height: 1px;
+    background-color: var(--color-mark-base);
+    opacity: 0.3;
+    display: block;
+  }
+
+  .love-letter-footer-italic {
+    font-style: italic;
+    font-size: calc(0.8125rem * var(--letter-scale, 1));
+    opacity: 0.75;
+  }
+
+
+  /* ─────────────────────────────────────────────────────────────────────────── */
 
   .panel-aside {
     background-color: var(--background);

@@ -18,8 +18,12 @@ export function LeftPanel({
 }: LeftPanelProps) {
   return (
     <aside
-      className="panel-aside border-r max-lg:absolute max-lg:left-0 max-lg:top-0 max-lg:bottom-0 max-lg:z-50"
-      style={{ width: isOpen ? 208 : 0 }}
+      className="panel-aside border-r fixed left-0 bottom-0 z-50"
+      style={{
+        top: "var(--header-height, 53px)",
+        width: isOpen ? 208 : 0,
+        boxShadow: isOpen ? "2px 0 12px rgba(0,0,0,0.08)" : "none",
+      }}
     >
       <div className="panel-scroll w-52 py-4">
         {CHAR_GROUPS.map((group) => (

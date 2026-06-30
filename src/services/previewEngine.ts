@@ -8,14 +8,13 @@ import type { Stroke, ScriptMode } from "@/types";
 import type { CanvasTheme } from "@/utils/canvasTheme";
 import {
   CANVAS_HEIGHT,
-  CANVAS_WIDTH,
+  ADVANCE_CANVAS_WIDTH,
   BASELINE_Y,
   CAP_TO_BASE,
   GLYPH_ADVANCE_WIDTH_BASE,
   SPACE_WIDTH,
   PREVIEW_PADDING_X,
   PREVIEW_PADDING_TOP,
-  PREVIEW_LINE_HEIGHT_MULTIPLIER,
   CONNECT_OVERLAP,
 } from "@/constants";
 import { svgPathFromStroke, getEffectivePoints } from "@/utils";
@@ -31,16 +30,17 @@ export function renderPreview(
   letterSpacing: number,
   theme: CanvasTheme,
   scriptMode: ScriptMode = "normal",
+  lineHeight: number = 1.15,
 ): void {
   const ctx = canvas.getContext("2d")!;
   const scale = fontSizePx / CAP_TO_BASE;
 
-  // Convert font units → screen pixels (canvas width === one glyph advance cell)
-  const fuToPx = (scale * CANVAS_WIDTH) / GLYPH_ADVANCE_WIDTH_BASE;
+  // Convert font units → screen pixels using ADVANCE_CANVAS_WIDTH (narrower than CANVAS_WIDTH)
+  const fuToPx = (scale * ADVANCE_CANVAS_WIDTH) / GLYPH_ADVANCE_WIDTH_BASE;
   const overlap = scriptMode === "connected" ? CONNECT_OVERLAP : 0;
   const advanceW = (GLYPH_ADVANCE_WIDTH_BASE + letterSpacing - overlap) * fuToPx;
   const spaceW = SPACE_WIDTH * fuToPx;
-  const lineH = CANVAS_HEIGHT * scale * PREVIEW_LINE_HEIGHT_MULTIPLIER;
+  const lineH = CANVAS_HEIGHT * scale * lineHeight;
   const padX = PREVIEW_PADDING_X;
   const padTop = PREVIEW_PADDING_TOP;
 
@@ -118,7 +118,7 @@ export function renderPreview(
         advanceW - 4,
         CAP_TO_BASE * scale,
       );
-      ctx.font = `${fontSizePx * 0.7}px 'Playfair Display',serif`;
+      ctx.font = `${fontSizePx * 0.7}px 'Amiri',serif`;
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";
       ctx.fillStyle = theme.placeholderFill;
@@ -135,12 +135,12 @@ export function renderPreview(
 
         ctx.save();
         ctx.globalAlpha = stroke.opacity;
-        ctx.fillStyle = theme.ink;
+        ctx.fillStyle = theme.previewInk;
         ctx.fill(new Path2D(svgPathFromStroke(outline)));
 
         if (stroke.brushType === "ballpoint") {
           ctx.globalAlpha = stroke.opacity * 0.12;
-          ctx.fillStyle = theme.inkFringe;
+          ctx.fillStyle = theme.previewInkFringe;
           ctx.fill(new Path2D(svgPathFromStroke(outline)));
         }
 

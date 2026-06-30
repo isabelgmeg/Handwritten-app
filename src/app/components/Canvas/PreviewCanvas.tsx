@@ -8,6 +8,7 @@ interface PreviewCanvasProps {
   glyphs: Record<string, Stroke[]>;
   previewSize: number;
   letterSpacing: number;
+  lineHeight: number;
   scriptMode: ScriptMode;
 }
 
@@ -16,14 +17,15 @@ export function PreviewCanvas({
   glyphs,
   previewSize,
   letterSpacing,
+  lineHeight,
   scriptMode,
 }: PreviewCanvasProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Keep render params in a ref so the ResizeObserver always reads fresh values
-  const paramsRef = useRef({ previewText, glyphs, previewSize, letterSpacing, scriptMode });
-  paramsRef.current = { previewText, glyphs, previewSize, letterSpacing, scriptMode };
+  const paramsRef = useRef({ previewText, glyphs, previewSize, letterSpacing, lineHeight, scriptMode });
+  paramsRef.current = { previewText, glyphs, previewSize, letterSpacing, lineHeight, scriptMode };
 
   const render = useCallback(() => {
     const canvas = canvasRef.current;
@@ -32,8 +34,8 @@ export function PreviewCanvas({
     const w = wrapper.clientWidth;
     if (w <= 0) return;
     canvas.width = w;
-    const { previewText, glyphs, previewSize, letterSpacing, scriptMode } = paramsRef.current;
-    renderPreview(canvas, previewText, glyphs, previewSize, letterSpacing, getCanvasTheme(), scriptMode);
+    const { previewText, glyphs, previewSize, letterSpacing, lineHeight, scriptMode } = paramsRef.current;
+    renderPreview(canvas, previewText, glyphs, previewSize, letterSpacing, getCanvasTheme(), scriptMode, lineHeight);
   }, []);
 
   // Observe container width changes and re-render
@@ -48,7 +50,7 @@ export function PreviewCanvas({
   // Re-render whenever props change
   useEffect(() => {
     render();
-  }, [previewText, glyphs, previewSize, letterSpacing, scriptMode, render]);
+  }, [previewText, glyphs, previewSize, letterSpacing, lineHeight, scriptMode, render]);
 
   return (
     <div ref={wrapperRef} className="preview-wrapper">

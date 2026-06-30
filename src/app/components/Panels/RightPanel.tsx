@@ -4,6 +4,7 @@ import {
   BrushSettingsSection,
   StrokeQualitySection,
   PreviewSettingsSection,
+  ThemeSection,
 } from "../Sections";
 import type { BrushSettings, BrushSettingsActions, ScriptMode } from "@/types";
 
@@ -17,6 +18,10 @@ interface RightPanelProps {
   onPreviewSizeChange: (v: number) => void;
   letterSpacing: number;
   onLetterSpacingChange: (v: number) => void;
+  lineHeight: number;
+  onLineHeightChange: (v: number) => void;
+  themeHue: number;
+  onThemeHueChange: (hue: number) => void;
 }
 
 export function RightPanel({
@@ -29,14 +34,22 @@ export function RightPanel({
   onPreviewSizeChange,
   letterSpacing,
   onLetterSpacingChange,
+  lineHeight,
+  onLineHeightChange,
+  themeHue,
+  onThemeHueChange,
 }: RightPanelProps) {
   const { brushType, brushSize, opacity, stabilizer, smoothing, streamline, thinning, taper, grain } = brushSettings;
   const { setBrushType, setBrushSize, setOpacity, setStabilizer, setSmoothing, setStreamline, setThinning, setTaper, setGrain } = brushActions;
 
   return (
     <aside
-      className="panel-aside border-l max-lg:absolute max-lg:right-0 max-lg:top-0 max-lg:bottom-0 max-lg:z-50"
-      style={{ width: isOpen ? 272 : 0 }}
+      className="panel-aside border-l fixed right-0 bottom-0 z-50"
+      style={{
+        top: "var(--header-height, 53px)",
+        width: isOpen ? 272 : 0,
+        boxShadow: isOpen ? "-2px 0 12px rgba(0,0,0,0.08)" : "none",
+      }}
     >
       <div className="panel-scroll w-[272px]">
         <div className="px-4 py-5">
@@ -73,7 +86,12 @@ export function RightPanel({
             onPreviewSizeChange={onPreviewSizeChange}
             letterSpacing={letterSpacing}
             onLetterSpacingChange={onLetterSpacingChange}
+            lineHeight={lineHeight}
+            onLineHeightChange={onLineHeightChange}
           />
+
+          {/* ── Appearance ─────────────────────────────────── */}
+          <ThemeSection themeHue={themeHue} onThemeHueChange={onThemeHueChange} />
         </div>
       </div>
     </aside>

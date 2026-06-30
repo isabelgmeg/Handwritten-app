@@ -10,6 +10,7 @@ import { GRAIN_TEXTURE_SIZE } from "@/constants";
 import {
   CANVAS_WIDTH,
   CANVAS_HEIGHT,
+  ADVANCE_CANVAS_WIDTH,
   CAP_Y,
   XHEIGHT_Y,
   BASELINE_Y,
@@ -79,7 +80,7 @@ export function getAnchorPositions(
   const spreadPx =
     ((GLYPH_ADVANCE_WIDTH_BASE + letterSpacing - overlap) /
       GLYPH_ADVANCE_WIDTH_BASE) *
-    CANVAS_WIDTH;
+    ADVANCE_CANVAS_WIDTH;
   const center = CANVAS_WIDTH / 2;
   return {
     entryX: Math.max(2, center - spreadPx / 2),

@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import getStroke from "perfect-freehand";
-import { ChevronLeft, ChevronRight, Undo2, Trash2, Type } from "lucide-react";
+import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Download } from "lucide-react";
+import { toast } from "sonner";
 
 // Types
 import type { BrushType, Stroke, StyleGlyphs, PFOptions } from "@/types";
+import type { FontFormat } from "@/services/fontGenerator";
 
 // Constants
 import {
@@ -20,9 +22,6 @@ import {
   fullRedraw,
   downloadFont,
   downloadAllStyles,
-  autoGenerateBold,
-  autoGenerateItalic,
-  autoGenerateBoldItalic,
   getOrCreateGrainCanvas,
   getOrCreateGrainPixels,
   getAnchorPositions,
@@ -44,11 +43,15 @@ import {
 
 // Components
 import { Header } from "./components/Panels/Header";
+import { LandingPage } from "./components/LandingPage";
+import { AboutPage } from "./components/AboutPage";
 import { StyleCircle } from "./components/common/StyleCircle";
 import { LeftPanel } from "./components/Panels/LeftPanel";
 import { RightPanel } from "./components/Panels/RightPanel";
 import { DrawingCanvas } from "./components/Canvas/DrawingCanvas";
-import { PreviewCanvas } from "./components/Canvas/PreviewCanvas";
+import { LoveLetterPreview } from "./components/Canvas/LoveLetterPreview";
+import { DownloadDialog } from "./components/common/DownloadDialog";
+import { Toaster } from "./components/ui/sonner";
 
 // ── Initial State ────────────────────────────────────────────────────────────
 
@@ -97,9 +100,27 @@ export default function App() {
   // Lazy dot state
   const lazyDot = useLazyDot();
 
+  // Theme hue
+  const [themeHue, setThemeHue] = useState(48);
+  useEffect(() => {
+    document.documentElement.style.setProperty("--theme-hue", String(themeHue));
+  }, [themeHue]);
+
+  // App view
+  const [appView, setAppView] = useState<"studio" | "about">("studio");
+
+  // Download dialog state
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [downloadDialogMode, setDownloadDialogMode] = useState<"single" | "all">("single");
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const currentStrokes = glyphs[canvasState.activeStyle][canvasState.currentChar] ?? [];
   const drawnCount = Object.values(glyphs[canvasState.activeStyle]).filter((s) => s.length > 0).length;
-  const regularDrawnCount = Object.values(glyphs.regular).filter((s) => s.length > 0).length;
+  const totalDrawnCount = Object.values(glyphs).reduce(
+    (sum, styleGlyphs) => sum + Object.values(styleGlyphs).filter((s) => s.length > 0).length,
+    0
+  );
+  const activeStyleLabel = FONT_STYLES.find((s) => s.key === canvasState.activeStyle)?.label ?? "";
   const dotRadius = brushSettings.stabilizer * canvasDisplayScale.current;
 
   // ── Event Handlers ───────────────────────────────────────────────────────
@@ -273,25 +294,67 @@ export default function App() {
     glyphState.clearGlyph(canvasState.currentChar);
   }, [canvasState.currentChar, glyphState]);
 
-  const handleAutoGenerateBold = useCallback(() => {
-    setGlyphs((prev) => autoGenerateBold(prev));
+  const handleDownloadFont = useCallback(() => {
+    setDownloadDialogMode("single");
+    setDownloadDialogOpen(true);
   }, []);
 
-  const handleAutoGenerateItalic = useCallback(() => {
-    setGlyphs((prev) => autoGenerateItalic(prev));
+  const handleDownloadAllStyles = useCallback(() => {
+    setDownloadDialogMode("all");
+    setDownloadDialogOpen(true);
   }, []);
 
-  const handleAutoGenerateBoldItalic = useCallback(() => {
-    setGlyphs((prev) => autoGenerateBoldItalic(prev));
-  }, []);
+  const handleConfirmDownload = useCallback(
+    async (name: string, format: FontFormat) => {
+      setIsDownloading(true);
+      try {
+        const result =
+          downloadDialogMode === "all"
+            ? await downloadAllStyles(
+                glyphs,
+                name,
+                previewState.letterSpacing,
+                canvasState.scriptMode,
+                format,
+              )
+            : await downloadFont(
+                glyphs,
+                canvasState.activeStyle,
+                name,
+                previewState.letterSpacing,
+                canvasState.scriptMode,
+                format,
+              );
 
-  const handleDownloadFont = useCallback(async () => {
-    await downloadFont(glyphs, canvasState.activeStyle, canvasState.fontName, previewState.letterSpacing, canvasState.scriptMode);
-  }, [glyphs, canvasState.activeStyle, canvasState.fontName, previewState.letterSpacing, canvasState.scriptMode]);
-
-  const handleDownloadAllStyles = useCallback(async () => {
-    await downloadAllStyles(glyphs, canvasState.fontName, previewState.letterSpacing, canvasState.scriptMode);
-  }, [glyphs, canvasState.fontName, previewState.letterSpacing, canvasState.scriptMode]);
+        if (!result.ok) {
+          toast.error(result.error ?? "Download failed");
+        } else {
+          setDownloadDialogOpen(false);
+          canvasState.setFontName(name);
+          if (result.warnings.length > 0) {
+            toast.warning("Font downloaded with warnings", {
+              description: result.warnings.slice(0, 3).join("\n"),
+              duration: 6000,
+            });
+          } else {
+            toast.success("Font downloaded successfully!");
+          }
+        }
+      } catch (err) {
+        toast.error(
+          `Unexpected error: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      } finally {
+        setIsDownloading(false);
+      }
+    },
+    [
+      downloadDialogMode,
+      glyphs,
+      previewState.letterSpacing,
+      canvasState,
+    ],
+  );
 
   // ── Effects ──────────────────────────────────────────────────────────────
 
@@ -329,6 +392,7 @@ export default function App() {
     canvasState.scriptMode,
     previewState.letterSpacing,
     canvasState.connectAnchorY,
+    themeHue,
   ]);
 
   useEffect(() => {
@@ -340,60 +404,103 @@ export default function App() {
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-x-hidden">
       <Header
-        fontName={canvasState.fontName}
-        onFontNameChange={canvasState.setFontName}
-        drawnCount={drawnCount}
-        showTemplate={canvasState.showTemplate}
-        onShowTemplateChange={canvasState.setShowTemplate}
-        templateFontLabel={canvasState.templateFontLabel}
-        onImportFont={() => fontInputRef.current?.click()}
-        showGuides={canvasState.showGuides}
-        onShowGuidesChange={canvasState.setShowGuides}
-        activeStyle={canvasState.activeStyle}
-        onDownloadFont={handleDownloadFont}
-        onDownloadAllStyles={handleDownloadAllStyles}
-        onLeftPanelToggle={layoutState.toggleLeft}
-        onRightPanelToggle={layoutState.toggleRight}
-        fontInputRef={fontInputRef}
+        view={appView}
+        onAbout={() => setAppView("about")}
+        onBack={() => setAppView("studio")}
       />
 
-      <div className="flex flex-1 min-h-0 relative">
-        {/* Backdrop — closes any open overlay panel on mobile */}
-        {(layoutState.leftOpen || layoutState.rightOpen) && (
+      {/* Spacer so content clears the fixed header */}
+      <div style={{ height: "var(--header-height, 53px)" }} />
+
+      {appView === "about" && <AboutPage onBack={() => setAppView("studio")} />}
+
+      {/* Landing content sits above the studio in one scroll */}
+      {appView === "studio" && <LandingPage onEnterStudio={() => {}} hideCta />}
+
+      {/* Studio */}
+      <div className={["flex min-h-screen relative", appView === "about" ? "hidden" : ""].join(" ")}>
+          {/* Floating panel triggers — sit just below the header */}
+          <button
+            onClick={layoutState.toggleLeft}
+            className="btn btn-icon-md btn-ghost fixed left-3 z-40"
+            style={{ top: "calc(var(--header-height, 53px) + 10px)" }}
+            title="Characters"
+            aria-label="Toggle character panel"
+          >
+            <AlignLeft size={15} />
+          </button>
+          <button
+            onClick={layoutState.toggleRight}
+            className="btn btn-icon-md btn-ghost fixed right-3 z-40"
+            style={{ top: "calc(var(--header-height, 53px) + 10px)" }}
+            title="Brush settings"
+            aria-label="Toggle brush settings"
+          >
+            <Settings size={15} />
+          </button>
+
+          {/* Centered floating download buttons */}
           <div
-            className="absolute inset-0 z-40 bg-black/20 lg:hidden"
-            onClick={layoutState.closeAll}
+            className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5"
+            style={{ top: "calc(var(--header-height, 53px) + 10px)" }}
+          >
+            <button
+              onClick={handleDownloadFont}
+              disabled={drawnCount === 0}
+              title={drawnCount === 0 ? `Draw some ${activeStyleLabel} characters first` : `Download ${activeStyleLabel}`}
+              className="btn btn-sm btn-neu-accent gap-1.5"
+            >
+              <Download size={12} />
+              {activeStyleLabel}
+              {drawnCount > 0 && <span className="opacity-60 text-[10px]">{drawnCount}</span>}
+            </button>
+            <button
+              onClick={handleDownloadAllStyles}
+              disabled={totalDrawnCount === 0}
+              title={totalDrawnCount === 0 ? "Draw some characters first" : "Download all drawn styles"}
+              className="btn btn-sm btn-ghost gap-1.5"
+            >
+              All
+              {totalDrawnCount > 0 && <span className="opacity-50 text-[10px]">{totalDrawnCount}</span>}
+            </button>
+          </div>
+
+          {/* Backdrop — closes panels when clicking outside */}
+          {(layoutState.leftOpen || layoutState.rightOpen) && (
+            <div
+              className="fixed inset-0 z-40 bg-black/10"
+              style={{ top: "var(--header-height, 53px)" }}
+              onClick={layoutState.closeAll}
+            />
+          )}
+
+          <LeftPanel
+            isOpen={layoutState.leftOpen}
+            glyphs={glyphs}
+            activeStyle={canvasState.activeStyle}
+            currentChar={canvasState.currentChar}
+            onCharSelect={(char) => {
+              canvasState.setCurrentChar(char);
+              currentPoints.current = [];
+              isDrawing.current = false;
+            }}
           />
-        )}
 
-        <LeftPanel
-          isOpen={layoutState.leftOpen}
-          glyphs={glyphs}
-          activeStyle={canvasState.activeStyle}
-          currentChar={canvasState.currentChar}
-          onCharSelect={(char) => {
-            canvasState.setCurrentChar(char);
-            currentPoints.current = [];
-            isDrawing.current = false;
-          }}
-        />
+          <main className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-background min-w-0">
+            {/* Drawing area */}
+            <div className="flex-shrink-0 flex flex-col items-center px-4 sm:px-6 pt-4 pb-2 gap-3">
 
-        <main className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-background min-w-0">
-          {/* Drawing area */}
-          <div className="flex-shrink-0 flex flex-col items-center px-4 sm:px-6 pt-4 pb-2 gap-3">
+              {/* Style selector */}
+              <div className="flex flex-wrap items-center gap-1.5 self-stretch justify-center">
+                {FONT_STYLES.map(({ key, label }) => {
+                  const count = Object.values(glyphs[key]).filter((s) => s.length > 0).length;
+                  const isActive = key === canvasState.activeStyle;
 
-            {/* Style selector */}
-            <div className="flex flex-wrap items-center gap-1.5 self-stretch justify-center">
-              {FONT_STYLES.map(({ key, label }) => {
-                const count = Object.values(glyphs[key]).filter((s) => s.length > 0).length;
-                const isActive = key === canvasState.activeStyle;
-                const canAutoGenerate = key !== "regular" && regularDrawnCount > 0 && count === 0;
-
-                return (
-                  <div key={key} className="flex items-center">
+                  return (
                     <button
+                      key={key}
                       onClick={() => canvasState.setActiveStyle(key)}
                       className={isActive ? "style-btn-active" : "style-btn"}
                       style={{
@@ -407,119 +514,133 @@ export default function App() {
                         <span className="text-[10px] opacity-50 ml-0.5">{count}</span>
                       )}
                     </button>
-                    {canAutoGenerate && (
-                      <button
-                        onClick={() =>
-                          key === "bold"
-                            ? handleAutoGenerateBold()
-                            : key === "italic"
-                              ? handleAutoGenerateItalic()
-                              : handleAutoGenerateBoldItalic()
-                        }
-                        className="style-btn text-accent"
-                        title={`Auto-generate ${label} from Regular`}
-                      >
-                        auto
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Char nav */}
-            <div className="flex items-center gap-4">
-              <button onClick={() => navigateChar(-1)} className="btn btn-icon-md btn-ghost">
-                <ChevronLeft size={15} />
-              </button>
-              <div className="text-center w-16">
-                <span className="char-display">{canvasState.currentChar}</span>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  {currentStrokes.length} stroke{currentStrokes.length !== 1 ? "s" : ""}
-                </p>
+                  );
+                })}
               </div>
-              <button onClick={() => navigateChar(1)} className="btn btn-icon-md btn-ghost">
-                <ChevronRight size={15} />
-              </button>
-            </div>
 
-            {/* Drawing canvas */}
-            <DrawingCanvas
-              committedRef={committedRef}
-              activeRef={activeRef}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              showDot={lazyDot.showDot}
-              dotPos={lazyDot.dotPos}
-              dotRadius={dotRadius}
-              cursorStyle={anchorCursor}
-            />
+              {/* Char nav */}
+              <div className="flex items-center gap-4">
+                <button onClick={() => navigateChar(-1)} className="btn btn-icon-md btn-ghost">
+                  <ChevronLeft size={15} />
+                </button>
+                <div className="text-center w-16">
+                  <span className="char-display">{canvasState.currentChar}</span>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {currentStrokes.length} stroke{currentStrokes.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <button onClick={() => navigateChar(1)} className="btn btn-icon-md btn-ghost">
+                  <ChevronRight size={15} />
+                </button>
+              </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={undoStroke}
-                disabled={currentStrokes.length === 0}
-                className="btn btn-sm btn-ghost gap-1.5"
-              >
-                <Undo2 size={12} /> Undo
-              </button>
-              <button
-                onClick={clearGlyph}
-                disabled={currentStrokes.length === 0}
-                className="btn btn-sm btn-ghost gap-1.5"
-              >
-                <Trash2 size={12} /> Clear
-              </button>
-            </div>
-          </div>
-
-          {/* Preview section */}
-          <div className="flex-shrink-0 mx-4 mb-4 rounded border border-border overflow-hidden">
-            <div className="flex items-center gap-2 px-4 py-2.5 bg-card border-b border-border">
-              <Type size={13} className="text-accent flex-shrink-0" />
-              <span className="label-caps">Text Preview</span>
-            </div>
-
-            <div className="bg-card p-4 space-y-3">
-              <textarea
-                value={previewState.previewText}
-                onChange={(e) => previewState.setPreviewText(e.target.value)}
-                rows={2}
-                className="textarea-field"
-                placeholder="Type anything to preview your font…"
+              {/* Drawing canvas */}
+              <DrawingCanvas
+                committedRef={committedRef}
+                activeRef={activeRef}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                showDot={lazyDot.showDot}
+                dotPos={lazyDot.dotPos}
+                dotRadius={dotRadius}
+                cursorStyle={anchorCursor}
               />
 
-              <PreviewCanvas
-                previewText={previewState.previewText}
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={undoStroke}
+                  disabled={currentStrokes.length === 0}
+                  className="btn btn-sm btn-ghost gap-1.5"
+                >
+                  <Undo2 size={12} /> Undo
+                </button>
+                <button
+                  onClick={clearGlyph}
+                  disabled={currentStrokes.length === 0}
+                  className="btn btn-sm btn-ghost gap-1.5"
+                >
+                  <Trash2 size={12} /> Clear
+                </button>
+              </div>
+            </div>
+
+            {/* Preview section */}
+            <div className="flex-shrink-0 w-full max-w-2xl mx-auto px-4 mb-4 space-y-8">
+
+              {/* Editable fields — sit above the card */}
+              <div className="note-inputs" style={{ marginBottom: '120px' }}>
+                <div className="note-input-row">
+                  <div className="note-input-group">
+                    <span className="note-input-label">To</span>
+                    <input
+                      type="text"
+                      value={previewState.toField}
+                      onChange={(e) => previewState.setToField(e.target.value)}
+                      className="note-input-field"
+                      placeholder="Myself"
+                    />
+                  </div>
+                  <div className="note-input-group">
+                    <span className="note-input-label">Date</span>
+                    <input
+                      type="text"
+                      value={previewState.dateField}
+                      onChange={(e) => previewState.setDateField(e.target.value)}
+                      className="note-input-field"
+                      placeholder="Today"
+                    />
+                  </div>
+                </div>
+                <div className="note-input-group">
+                  <span className="note-input-label">Message</span>
+                  <textarea
+                    value={previewState.previewText}
+                    onChange={(e) => previewState.setPreviewText(e.target.value)}
+                    rows={2}
+                    className="textarea-field"
+                    placeholder="Write something to preview your font…"
+                  />
+                </div>
+              </div>
+
+              {/* The letter card */}
+              <LoveLetterPreview
+                toName={previewState.toField}
+                dateText={previewState.dateField}
+                bodyText={previewState.previewText}
                 glyphs={glyphs[canvasState.activeStyle]}
                 previewSize={previewState.previewSize}
                 letterSpacing={previewState.letterSpacing}
+                lineHeight={previewState.lineHeight}
                 scriptMode={canvasState.scriptMode}
               />
 
               {drawnCount === 0 && (
                 <p className="text-xs text-muted-foreground text-center italic">
-                  Draw some characters above — they will appear here in your font.
+                  Draw some characters above — they will appear in your font.
                 </p>
               )}
             </div>
-          </div>
-        </main>
+          </main>
 
-        <RightPanel
-          isOpen={layoutState.rightOpen}
-          brushSettings={brushSettings.settings}
-          brushActions={brushSettings.actions}
-          scriptMode={canvasState.scriptMode}
-          onScriptModeChange={canvasState.setScriptMode}
-          previewSize={previewState.previewSize}
-          onPreviewSizeChange={previewState.setPreviewSize}
-          letterSpacing={previewState.letterSpacing}
-          onLetterSpacingChange={previewState.setLetterSpacing}
-        />
-      </div>
+          <RightPanel
+            isOpen={layoutState.rightOpen}
+            brushSettings={brushSettings.settings}
+            brushActions={brushSettings.actions}
+            scriptMode={canvasState.scriptMode}
+            onScriptModeChange={canvasState.setScriptMode}
+            previewSize={previewState.previewSize}
+            onPreviewSizeChange={previewState.setPreviewSize}
+            letterSpacing={previewState.letterSpacing}
+            onLetterSpacingChange={previewState.setLetterSpacing}
+            lineHeight={previewState.lineHeight}
+            onLineHeightChange={previewState.setLineHeight}
+            themeHue={themeHue}
+            onThemeHueChange={setThemeHue}
+          />
+        </div>
 
       {/* Hidden file input for font upload */}
       <input
@@ -529,6 +650,20 @@ export default function App() {
         className="hidden"
         onChange={handleFontUpload}
       />
+
+      <DownloadDialog
+        open={downloadDialogOpen}
+        onOpenChange={setDownloadDialogOpen}
+        initialFontName={canvasState.fontName}
+        mode={downloadDialogMode}
+        styleLabel={
+          FONT_STYLES.find((s) => s.key === canvasState.activeStyle)?.label ?? ""
+        }
+        onDownload={handleConfirmDownload}
+        isDownloading={isDownloading}
+      />
+
+      <Toaster richColors position="bottom-right" />
     </div>
   );
 }

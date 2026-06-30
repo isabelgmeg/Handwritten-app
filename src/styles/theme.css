@@ -9,15 +9,18 @@
 :root {
 
   /* ── Typography ──────────────────────────────────────────────────────────── */
-  --font-sans:    'DM Sans', sans-serif;
-  --font-display: 'Playfair Display', serif;
-  --font-script:  'Caveat', cursive;
-  --font-mono:    'DM Mono', monospace;
+  --font-sans:        'DM Sans', sans-serif;
+  --font-display:     'Amiri', serif;
+  --font-script:      'MyHandwriting', 'Amiri', serif;
+  --font-mono:        'DM Mono', monospace;
   --font-weight-normal:   400;
   --font-weight-medium:   500;
   --font-weight-semibold: 600;
   --font-weight-bold:     700;
   --font-size: 16px;
+
+  /* ── Layout ───────────────────────────────────────────────────────────────── */
+  --header-height: 53px;
 
   /* ── Radius ───────────────────────────────────────────────────────────────── */
   --radius:      0.5rem;
@@ -50,6 +53,7 @@
   --color-surface-subtle:  oklch(0.833 0.050 var(--theme-hue));  /* inputs, wells  */
   --color-surface-muted:   oklch(0.766 0.063 var(--theme-hue));  /* deep panels    */
   --color-surface-shadow:  oklch(0.676 0.079 var(--theme-hue));  /* neu shadow     */
+  --color-note-surface:    oklch(0.820 0.052 var(--theme-hue));  /* note/post-it   */
 
 
   /* ─────────────────────────────────────────────────────────────────────────
@@ -65,8 +69,9 @@
   /* ─────────────────────────────────────────────────────────────────────────
      MARK — deep, saturated accent. All opacity variants derive from base.
   ───────────────────────────────────────────────────────────────────────── */
-  --color-mark-base:        oklch(0.360 0.131 var(--theme-hue));  /* CTA, active   */
-  --color-mark-deep:        oklch(0.280 0.110 var(--theme-hue));  /* pressed state */
+  --color-mark-base:        oklch(0.390 0.165 var(--theme-hue));  /* CTA, active   */
+  --color-mark-deep:        oklch(0.300 0.135 var(--theme-hue));  /* pressed state */
+  --color-mark-vivid:       oklch(0.562 0.198 35);               /* bright hero heading — rgba(207,52,0) */
   --color-mark-soft:        oklch(from var(--color-mark-base) l c h / 0.28);
   --color-mark-ghost:       oklch(from var(--color-mark-base) l c h / 0.18);
   --color-mark-ring:        oklch(from var(--color-mark-base) l c h / 0.35);
@@ -103,9 +108,11 @@
   --canvas-script-line:      oklch(from var(--color-guide) l c h / 0.55);
   --canvas-script-band:      oklch(from var(--color-guide) l c h / 0.06);
   --canvas-script-dot:       oklch(from var(--color-mark-base) l c h / 0.80);
-  --canvas-preview-rule:     oklch(from var(--color-guide) l c h / 0.28);
-  --canvas-placeholder-line: oklch(from var(--color-guide) l c h / 0.22);
-  --canvas-placeholder-fill: oklch(from var(--color-guide) l c h / 0.20);
+  --canvas-preview-ink:      var(--color-mark-vivid);
+  --canvas-preview-ink-fringe: oklch(from var(--color-mark-vivid) 0.32 0.14 35);
+  --canvas-preview-rule:     oklch(from var(--color-mark-vivid) l c h / 0.20);
+  --canvas-placeholder-line: oklch(from var(--color-mark-base) l c h / 0.30);
+  --canvas-placeholder-fill: oklch(from var(--color-mark-base) l c h / 0.18);
 
 
   /* ═════════════════════════════════════════════════════════════════════════
@@ -207,6 +214,7 @@
   --color-surface-subtle:  oklch(0.22 0.045 var(--theme-hue));
   --color-surface-muted:   oklch(0.26 0.050 var(--theme-hue));
   --color-surface-shadow:  oklch(0.12 0.020 var(--theme-hue));
+  --color-note-surface:    oklch(0.21 0.048 var(--theme-hue));  /* note/post-it   */
 
   --color-text-base:       oklch(0.92 0.020 var(--theme-hue));
   --color-text-secondary:  oklch(0.65 0.055 var(--theme-hue));

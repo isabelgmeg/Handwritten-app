@@ -110,3 +110,8 @@ export const LETTER_SPACING_MIN = -200;
 export const LETTER_SPACING_MAX = 300;
 export const LETTER_SPACING_STEP = 10;
 export const DEFAULT_LETTER_SPACING = 0;
+
+export const LINE_HEIGHT_MIN = 0.8;
+export const LINE_HEIGHT_MAX = 2.5;
+export const LINE_HEIGHT_STEP = 0.05;
+export const DEFAULT_LINE_HEIGHT = 1.15;

@@ -5,6 +5,8 @@ interface PreviewSettingsSectionProps {
   onPreviewSizeChange: (v: number) => void;
   letterSpacing: number;
   onLetterSpacingChange: (v: number) => void;
+  lineHeight: number;
+  onLineHeightChange: (v: number) => void;
 }
 
 export function PreviewSettingsSection({
@@ -12,6 +14,8 @@ export function PreviewSettingsSection({
   onPreviewSizeChange,
   letterSpacing,
   onLetterSpacingChange,
+  lineHeight,
+  onLineHeightChange,
 }: PreviewSettingsSectionProps) {
   return (
     <>
@@ -23,6 +27,9 @@ export function PreviewSettingsSection({
         display={letterSpacing > 0 ? `+${letterSpacing}` : `${letterSpacing}`}
       >
         <SliderRow value={letterSpacing} min={-200} max={300} step={5} onChange={onLetterSpacingChange} />
+      </Section>
+      <Section label="Line Height" display={`×${lineHeight.toFixed(2)}`}>
+        <SliderRow value={lineHeight} min={0.8} max={2.5} step={0.05} onChange={onLineHeightChange} />
       </Section>
     </>
   );
