@@ -24,11 +24,11 @@ export function LeftPanel({
       className="panel-aside border-r fixed left-0 bottom-0 z-50"
       style={{
         top: "var(--header-height, 53px)",
-        width: isOpen ? 208 : 0,
+        width: isOpen ? 272 : 0,
         boxShadow: isOpen ? "2px 0 12px rgba(0,0,0,0.08)" : "none",
       }}
     >
-      <div className="panel-scroll w-52 py-4">
+      <div className="panel-scroll w-[272px] py-4">
         <div className="flex items-center justify-between px-3 mb-3">
           <span className="label-caps">Characters</span>
           <button onClick={onClose} className="btn btn-icon-sm btn-ghost" aria-label="Close panel">
