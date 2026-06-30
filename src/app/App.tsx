@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import getStroke from "perfect-freehand";
-import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Download, Pencil, Hand } from "lucide-react";
 import { toast } from "sonner";
 
 // Types
@@ -108,6 +108,9 @@ export default function App() {
 
   // App view
   const [appView, setAppView] = useState<"studio" | "about">("studio");
+
+  // Draw mode — on touch devices, off by default so scroll works
+  const [drawMode, setDrawMode] = useState(false);
 
   // Download dialog state
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
@@ -546,10 +549,24 @@ export default function App() {
                 dotPos={lazyDot.dotPos}
                 dotRadius={dotRadius}
                 cursorStyle={anchorCursor}
+                drawMode={drawMode}
               />
 
               {/* Actions */}
               <div className="flex items-center gap-2">
+                {/* Draw mode toggle — only visible on touch devices */}
+                <button
+                  onClick={() => setDrawMode(v => !v)}
+                  className={[
+                    "btn btn-sm gap-1.5 [@media(pointer:fine)]:hidden",
+                    drawMode ? "btn-neu-accent" : "btn-ghost",
+                  ].join(" ")}
+                  title={drawMode ? "Switch to scroll mode" : "Switch to draw mode"}
+                >
+                  {drawMode ? <Pencil size={12} /> : <Hand size={12} />}
+                  {drawMode ? "Drawing" : "Scroll"}
+                </button>
+
                 <button
                   onClick={undoStroke}
                   disabled={currentStrokes.length === 0}
