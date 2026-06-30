@@ -1,0 +1,686 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   COMPONENT LAYER
+   All reusable classes live here, built from design tokens in theme.css.
+   Neumorphic depth replaces hard borders throughout.
+───────────────────────────────────────────────────────────────────────────── */
+
+@layer components {
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BUTTONS
+     Composable: .btn + size + color variant
+     Most interactive elements are neumorphic (raised by default).
+     The accent CTA is flat with a blue glow — it must read above the landscape.
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    border-radius: var(--radius);
+    border: none;
+    font-weight: var(--font-weight-medium);
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    user-select: none;
+    background-color: var(--background);  /* must match page for neumorphism */
+    color: var(--foreground);
+    box-shadow: var(--shadow-neu-raised-sm);
+    transition:
+      box-shadow     var(--transition-fast),
+      color          var(--transition-fast),
+      opacity        var(--transition-fast),
+      transform      var(--transition-fast);
+
+    &:hover:not(:disabled) {
+      color: var(--foreground);
+    }
+
+    /* Pressed: gradient from dark-shadow-color → white at 145deg
+       matches the demo's .icon-button:active pattern exactly */
+    &:active:not(:disabled) {
+      background: var(--neu-gradient-pressed);
+      box-shadow: var(--shadow-neu-raised-xs);
+      transform: scale(0.99);
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+  }
+
+  /* ── Size modifiers ────────────────────────────────────────────────────── */
+  .btn-xs  { font-size: 0.6875rem; padding: 0.25rem  0.625rem; }
+  .btn-sm  { font-size: 0.75rem;   padding: 0.375rem 0.75rem;  }
+  .btn-md  { font-size: 0.875rem;  padding: 0.5rem   0.875rem; }
+  .btn-lg  { font-size: 0.9375rem; padding: 0.625rem 1.125rem; }
+
+  /* Square icon buttons */
+  .btn-icon-sm { width: 1.75rem; height: 1.75rem; padding: 0; }
+  .btn-icon-md { width: 2rem;    height: 2rem;    padding: 0; }
+
+  /* ── Color variants ────────────────────────────────────────────────────── */
+
+  /* Blue ink CTA — flat with glow, stands above neumorphic landscape */
+  .btn-accent {
+    background-color: var(--accent);
+    color: var(--accent-foreground);
+    box-shadow: var(--shadow-accent);
+
+    &:hover:not(:disabled) {
+      color: var(--accent-foreground);
+      box-shadow: var(--shadow-accent-hover);
+      opacity: 0.95;
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.98);
+      box-shadow: var(--shadow-accent);
+    }
+  }
+
+  /* Dark CTA — editorial, no neumorphism */
+  .btn-primary {
+    background-color: var(--foreground);
+    color: var(--background);
+    box-shadow: var(--shadow-sm);
+
+    &:hover:not(:disabled) {
+      color: var(--background);
+      opacity: 0.88;
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.97);
+    }
+  }
+
+  /* Font-style selector: plain text tabs, no pill */
+  .style-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem 0.375rem;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--muted-foreground);
+    box-shadow: none;
+    line-height: 1;
+    white-space: nowrap;
+    transition: color var(--transition-fast);
+
+    &:hover { color: var(--foreground); }
+  }
+
+  .style-btn-active {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem 0.375rem;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-bold);
+    color: var(--accent);
+    box-shadow: none;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* Ghost — neumorphic raised (default btn behavior) */
+  .btn-ghost {
+    background-color: var(--background);
+    color: var(--foreground);
+    box-shadow: var(--shadow-neu-raised-sm);
+  }
+
+  /* Ghost active/selected — neumorphic inset, very neutral */
+  .btn-ghost-active {
+    background-color: var(--background);
+    color: var(--foreground);
+    box-shadow: var(--shadow-neu-inset-xs);
+
+    &:hover:not(:disabled) { color: var(--foreground); }
+    &:active:not(:disabled) { transform: none; }
+  }
+
+  /* Subtle — invisible until hovered, for low-priority actions */
+  .btn-subtle {
+    background-color: transparent;
+    color: var(--foreground);
+    box-shadow: none;
+
+    &:hover:not(:disabled) {
+      background-color: var(--background);
+      color: var(--foreground);
+      box-shadow: var(--shadow-neu-raised-sm);
+    }
+
+    &:active:not(:disabled) {
+      box-shadow: var(--shadow-neu-inset-xs);
+      transform: none;
+    }
+  }
+
+  /* Split button segments — for Download [label | All] */
+  .btn-split-start {
+    border-radius: var(--radius) 0 0 var(--radius);
+  }
+  .btn-split-end {
+    border-left: 1px solid var(--color-line-on-dark);
+    border-radius: 0 var(--radius) var(--radius) 0;
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SECTION ANATOMY (right panel sections)
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .section-root {
+    margin-bottom: 1.25rem;
+    padding-bottom: 1.25rem;
+
+    /* Separator: very faint warm line — barely there */
+    border-bottom: 1px solid var(--border);
+
+    &:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.875rem;
+  }
+
+  /* 10px ALL-CAPS micro-label — editorial, restrained */
+  .label-caps {
+    font-size: 0.625rem;
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--muted-foreground);
+  }
+
+  /* Mono value badge: "16px", "80%", etc. */
+  .value-badge {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    font-weight: var(--font-weight-medium);
+    font-variant-numeric: tabular-nums;
+    color: var(--muted-foreground);
+    background-color: var(--background);
+    /* Inset pocket — the value sits inside a debossed recess */
+    box-shadow:
+      inset  2px  2px 4px var(--neu-dark),
+      inset -2px -2px 4px var(--neu-light);
+    border-radius: var(--radius-sm);
+    padding: 0.125rem 0.5rem;
+  }
+
+  /* Small descriptive text under controls */
+  .field-hint {
+    font-size: 0.625rem;
+    line-height: 1.5;
+    color: var(--color-text-ghost);
+    margin-top: 0.375rem;
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SLIDER INPUT
+     Track is a neumorphic inset channel. Thumb inherits accent color.
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .slider-input {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 0.5rem;
+    cursor: pointer;
+    border-radius: var(--radius-full);
+    background-color: var(--background);
+    box-shadow: var(--shadow-neu-inset-sm);
+    accent-color: var(--accent);
+    outline: none;
+  }
+
+  .slider-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background-color: var(--accent);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 1px 4px var(--color-surface-shadow);
+  }
+
+  .slider-input::-moz-range-thumb {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background-color: var(--accent);
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 1px 4px var(--color-surface-shadow);
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SLIDER ROW  (minus / range / plus)
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .slider-row-value {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-text-subtle);
+    width: 2.25rem;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     SEGMENTED CONTROL  (script mode, font style tabs)
+     The whole track is neumorphic raised; active segment fills dark (primary).
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .seg-control {
+    display: flex;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-neu-raised-sm);
+    background-color: var(--background);
+    width: 100%;
+  }
+
+  .seg-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+    line-height: 1;
+    color: var(--muted-foreground);
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color var(--transition-fast), color var(--transition-fast);
+
+    & + & { border-left: 1px solid var(--border); }
+    &:hover { color: var(--foreground); }
+  }
+
+  .seg-btn-active {
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    &:hover { color: var(--primary-foreground); }
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     BRUSH CARD  (2-column brush picker grid)
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .brush-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.75rem 0.5rem 0.625rem;
+    border-radius: var(--radius);
+    border: none;
+    background-color: var(--background);
+    color: var(--muted-foreground);
+    font-size: 0.625rem;
+    font-weight: var(--font-weight-medium);
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    box-shadow: var(--shadow-neu-raised-sm);
+    transition:
+      box-shadow var(--transition-fast),
+      color      var(--transition-fast);
+
+    &:hover { color: var(--foreground); }
+
+    &:active { background: var(--neu-gradient-pressed); }
+  }
+
+  .brush-card-active {
+    color: var(--accent);
+    box-shadow: var(--shadow-neu-inset-sm);
+
+    &:hover  { color: var(--accent); }
+    &:active { background: var(--neu-gradient-pressed); }
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     LIST ITEM  (kept for any remaining list-style rows)
+     Default: invisible. Hover: raised. Active/selected: inset.
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    width: 100%;
+    padding: 0.5rem 0.625rem;
+    border-radius: var(--radius);
+    font-size: 0.75rem;
+    font-weight: var(--font-weight-medium);
+    color: var(--color-text-subtle);
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    box-shadow: none;
+    transition:
+      box-shadow var(--transition-fast),
+      color      var(--transition-fast);
+
+    &:hover {
+      color: var(--foreground);
+      background-color: var(--background);
+      box-shadow: var(--shadow-neu-raised-sm);
+    }
+  }
+
+  /* Selected state — pressed in */
+  .list-item-active {
+    background-color: var(--background);
+    color: var(--foreground);
+    box-shadow: var(--shadow-neu-inset-sm);
+
+    &:hover  { box-shadow: var(--shadow-neu-inset-sm); }
+    &:active { background: var(--neu-gradient-pressed); }
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CHARACTER BUTTON  (left panel glyph grid)
+
+     Three states:
+       1. Undrawn   — raised (available, waiting)
+       2. Drawn     — inset (completed, stamped in) — via :has(.char-btn-dot)
+       3. Active    — raised + accent dot (currently editing)
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .char-btn {
+    position: relative;
+    width: 2rem;
+    height: 2rem;
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: var(--font-weight-normal);
+    border-radius: var(--radius);
+    border: none;
+    background-color: var(--background);
+    color: var(--foreground);
+    cursor: pointer;
+
+    /* Raised: available/undrawn */
+    box-shadow: var(--shadow-neu-raised-xs);
+
+    transition:
+      box-shadow var(--transition-fast),
+      color      var(--transition-fast);
+
+    &:hover { box-shadow: var(--shadow-neu-raised-sm); }
+  }
+
+  /* Drawn (not active) — inset = completed/stamped. Detected via :has() */
+  .char-btn:has(.char-btn-dot) {
+    box-shadow: var(--shadow-neu-inset-xs);
+    color: var(--color-text-subtle);
+
+    &:hover { box-shadow: var(--shadow-neu-inset-sm); }
+  }
+
+  /* Active (currently editing) — raised + accent dot indicator */
+  .char-btn-active {
+    box-shadow: var(--shadow-neu-raised-md);
+    color: var(--foreground);
+
+    &:hover { box-shadow: var(--shadow-neu-raised-md); }
+
+    /* Small accent dot at bottom-center — marks the editing position */
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 3px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 4px;
+      height: 4px;
+      border-radius: var(--radius-full);
+      background-color: var(--accent);
+    }
+  }
+
+  /* Drawn indicator dot — shown on drawn non-active chars */
+  .char-btn-dot {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    width: 5px;
+    height: 5px;
+    border-radius: var(--radius-full);
+    background-color: var(--accent);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TOGGLE SWITCH
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .toggle-switch {
+    position: relative;
+    width: 2rem;
+    height: 1.125rem;
+    flex-shrink: 0;
+    border-radius: var(--radius-full);
+    border: none;
+    cursor: pointer;
+    background-color: var(--background);
+    box-shadow: var(--shadow-neu-inset-sm);
+    transition: background-color var(--transition-base);
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0.1875rem;
+      left: 0.1875rem;
+      width: 0.75rem;
+      height: 0.75rem;
+      border-radius: var(--radius-full);
+      background-color: var(--muted-foreground);
+      box-shadow: var(--shadow-neu-raised-xs);
+      transition: transform var(--transition-base), background-color var(--transition-base);
+    }
+
+    &[data-state="on"] {
+      &::after {
+        transform: translateX(0.875rem);
+        background-color: var(--accent);
+      }
+    }
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TEXT INPUT / TEXTAREA
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .textarea-field {
+    width: 100%;
+    font-size: 0.875rem;
+    background-color: var(--background);
+    color: var(--accent);
+    opacity: 1;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.625rem 0.875rem;
+    outline: none;
+    resize: none;
+
+    /* Inset: the text area is a depressed surface */
+    box-shadow: var(--shadow-neu-inset-sm);
+
+    transition: box-shadow var(--transition-fast);
+
+    &::placeholder { color: var(--color-text-ghost); }
+
+    &:focus {
+      box-shadow:
+        var(--shadow-neu-inset-sm),
+        0 0 0 2px var(--color-mark-ghost);
+    }
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     CANVAS WRAPPERS
+     Canvas is fully integrated — no border, no shadow.
+     The guide lines define the drawing area.
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .canvas-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    border: none;
+    box-shadow: none;
+    width: 100%;
+    margin-inline: auto;
+    background-color: var(--color-surface-base);
+  }
+
+  /* Brush size preview circle — shows actual ink color */
+  .brush-preview-dot {
+    border-radius: var(--radius-full);
+    background-color: var(--color-mark-base);
+    transition: width 150ms ease, height 150ms ease;
+  }
+
+  /* Preview canvas container — inset, background inherits from page surface */
+  .preview-wrapper {
+    overflow: hidden;
+    border-radius: var(--radius);
+    border: none;
+    box-shadow: var(--shadow-neu-inset-sm);
+  }
+
+  /* Stabilizer lazy-brush dot overlay */
+  .lazy-dot {
+    pointer-events: none;
+    position: absolute;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-mark-ring);
+    background-color: var(--color-mark-faint);
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     PROGRESS BAR
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .progress-track {
+    height: 0.375rem;
+    border-radius: var(--radius-full);
+    overflow: hidden;
+    box-shadow: var(--shadow-neu-inset-xs);
+    background-color: transparent;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    background-color: var(--accent);
+    transition: width var(--transition-slow);
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     TYPOGRAPHY UTILITIES
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Monospaced tabular numbers */
+  .mono-num {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* App wordmark — uses the editorial/display font */
+  .wordmark {
+    font-family: var(--font-display);
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: -0.025em;
+  }
+
+  /* Large decorative character display (active glyph in drawing area) */
+  .char-display {
+    font-family: var(--font-display);
+    font-size: 3rem;
+    font-weight: var(--font-weight-medium);
+    line-height: 1;
+    color: var(--color-mark-soft);
+  }
+
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+     PANEL SIDEBAR
+     Same background as the page — neumorphism needs one surface.
+     A barely-visible edge line provides the only spatial boundary.
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .panel-aside {
+    background-color: var(--background);
+    flex-shrink: 0;
+    overflow: hidden;
+    transition: width var(--transition-base);
+
+    /* Override the Tailwind border-color to the near-invisible token */
+    border-color: var(--border) !important;
+  }
+
+  .panel-scroll {
+    height: 100%;
+    overflow-y: auto;
+
+    /* Subtle custom scrollbar to stay in theme */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+}

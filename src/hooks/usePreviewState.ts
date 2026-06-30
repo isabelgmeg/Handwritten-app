@@ -11,7 +11,6 @@ export function usePreviewState() {
   );
   const [previewSize, setPreviewSize] = useState(DEFAULT_PREVIEW_SIZE);
   const [letterSpacing, setLetterSpacing] = useState(DEFAULT_LETTER_SPACING);
-  const [showPreview, setShowPreview] = useState(true);
 
   return {
     previewText,
@@ -20,7 +19,5 @@ export function usePreviewState() {
     setPreviewSize,
     letterSpacing,
     setLetterSpacing,
-    showPreview,
-    setShowPreview,
   };
 }

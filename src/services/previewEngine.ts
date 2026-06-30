@@ -4,18 +4,19 @@
  */
 
 import getStroke from "perfect-freehand";
-import type { Stroke } from "@/types";
+import type { Stroke, ScriptMode } from "@/types";
+import type { CanvasTheme } from "@/utils/canvasTheme";
 import {
   CANVAS_HEIGHT,
   CANVAS_WIDTH,
   BASELINE_Y,
   CAP_TO_BASE,
-  UPM,
   GLYPH_ADVANCE_WIDTH_BASE,
   SPACE_WIDTH,
   PREVIEW_PADDING_X,
   PREVIEW_PADDING_TOP,
   PREVIEW_LINE_HEIGHT_MULTIPLIER,
+  CONNECT_OVERLAP,
 } from "@/constants";
 import { svgPathFromStroke, getEffectivePoints } from "@/utils";
 
@@ -28,13 +29,16 @@ export function renderPreview(
   glyphs: Record<string, Stroke[]>,
   fontSizePx: number,
   letterSpacing: number,
+  theme: CanvasTheme,
+  scriptMode: ScriptMode = "normal",
 ): void {
   const ctx = canvas.getContext("2d")!;
   const scale = fontSizePx / CAP_TO_BASE;
 
-  // Convert font units → screen pixels
-  const fuToPx = (scale * CANVAS_WIDTH) / UPM;
-  const advanceW = (GLYPH_ADVANCE_WIDTH_BASE + letterSpacing) * fuToPx;
+  // Convert font units → screen pixels (canvas width === one glyph advance cell)
+  const fuToPx = (scale * CANVAS_WIDTH) / GLYPH_ADVANCE_WIDTH_BASE;
+  const overlap = scriptMode === "connected" ? CONNECT_OVERLAP : 0;
+  const advanceW = (GLYPH_ADVANCE_WIDTH_BASE + letterSpacing - overlap) * fuToPx;
   const spaceW = SPACE_WIDTH * fuToPx;
   const lineH = CANVAS_HEIGHT * scale * PREVIEW_LINE_HEIGHT_MULTIPLIER;
   const padX = PREVIEW_PADDING_X;
@@ -62,15 +66,14 @@ export function renderPreview(
   const totalH = padTop + lines * lineH + CANVAS_HEIGHT * scale * 0.3 + padTop;
   canvas.height = Math.max(80, totalH);
 
-  // Background
-  ctx.fillStyle = "#faf6f0";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Background — transparent so wrapper bg shows through
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
   // Baseline rules
   for (let l = 0; l < lines + 1; l++) {
     const by = padTop + BASELINE_Y * scale + l * lineH;
     ctx.save();
-    ctx.strokeStyle = "rgba(196,120,42,0.25)";
+    ctx.strokeStyle = theme.previewRule;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(padX - 8, by);
@@ -106,7 +109,7 @@ export function renderPreview(
     if (!strokes || strokes.length === 0) {
       // Placeholder
       ctx.save();
-      ctx.strokeStyle = "rgba(196,120,42,0.22)";
+      ctx.strokeStyle = theme.placeholderLine;
       ctx.lineWidth = 0.75;
       ctx.setLineDash([2, 3]);
       ctx.strokeRect(
@@ -115,10 +118,10 @@ export function renderPreview(
         advanceW - 4,
         CAP_TO_BASE * scale,
       );
-      ctx.font = `${fontSizePx * 0.7}px 'Georgia',serif`;
+      ctx.font = `${fontSizePx * 0.7}px 'Playfair Display',serif`;
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";
-      ctx.fillStyle = "rgba(196,120,42,0.18)";
+      ctx.fillStyle = theme.placeholderFill;
       ctx.fillText(ch, x + 4, baselineY);
       ctx.restore();
     } else {
@@ -132,13 +135,12 @@ export function renderPreview(
 
         ctx.save();
         ctx.globalAlpha = stroke.opacity;
-        ctx.fillStyle =
-          stroke.brushType === "ballpoint" ? "#1a1835" : "#1c1409";
+        ctx.fillStyle = theme.ink;
         ctx.fill(new Path2D(svgPathFromStroke(outline)));
 
         if (stroke.brushType === "ballpoint") {
-          ctx.globalAlpha = stroke.opacity * 0.15;
-          ctx.fillStyle = "#4a4aaa";
+          ctx.globalAlpha = stroke.opacity * 0.12;
+          ctx.fillStyle = theme.inkFringe;
           ctx.fill(new Path2D(svgPathFromStroke(outline)));
         }
 

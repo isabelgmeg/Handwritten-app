@@ -3,7 +3,8 @@
  */
 
 import { useState } from "react";
-import type { FontStyle } from "@/types";
+import type { FontStyle, ScriptMode } from "@/types";
+import { BASELINE_Y } from "@/constants";
 
 export function useCanvasState() {
   const [currentChar, setCurrentChar] = useState("A");
@@ -17,6 +18,8 @@ export function useCanvasState() {
     string | undefined
   >(undefined);
   const [fontName, setFontName] = useState("My Handwriting");
+  const [scriptMode, setScriptMode] = useState<ScriptMode>("normal");
+  const [connectAnchorY, setConnectAnchorY] = useState(BASELINE_Y);
 
   return {
     currentChar,
@@ -33,5 +36,9 @@ export function useCanvasState() {
     setTemplateFontLabel,
     fontName,
     setFontName,
+    scriptMode,
+    setScriptMode,
+    connectAnchorY,
+    setConnectAnchorY,
   };
 }

@@ -26,17 +26,23 @@ export function buildBrushOptions(
   };
 
   if (brushType === "inkpen") {
+    // Always pointed ends — enforce a minimum taper so inkpen is immediately
+    // distinct from round even when the taper slider is at zero.
+    const t = Math.max(taper, 30);
     return {
       ...base,
-      start: { cap: false, taper },
-      end: { cap: false, taper },
+      start: { cap: false, taper: t },
+      end: { cap: false, taper: t },
     };
   }
 
   if (brushType === "calligraphy") {
+    // Width variation comes from direction-based pressure in getEffectivePoints,
+    // not from PF thinning. Ensure thinning is high enough to let that through.
     return {
       ...base,
-      thinning: Math.min(1, thinning * 1.3),
+      thinning: Math.max(0.7, thinning),
+      smoothing: Math.max(0.5, smoothing),
       start: { cap: false, taper: taper * 0.5 },
       end: { cap: false, taper },
     };

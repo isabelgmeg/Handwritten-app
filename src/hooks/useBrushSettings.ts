@@ -1,9 +1,5 @@
-/**
- * Hook for managing brush settings
- */
-
-import { useState } from "react";
-import type { BrushType } from "@/types";
+import { useMemo, useState } from "react";
+import type { BrushType, BrushSettings, BrushSettingsActions } from "@/types";
 import {
   DEFAULT_BRUSH_SIZE,
   DEFAULT_THINNING,
@@ -13,6 +9,7 @@ import {
   DEFAULT_TAPER,
   DEFAULT_OPACITY,
   DEFAULT_GRAIN,
+  BRUSH_DEFAULTS,
 } from "@/constants";
 
 export function useBrushSettings() {
@@ -26,24 +23,41 @@ export function useBrushSettings() {
   const [opacity, setOpacity] = useState(DEFAULT_OPACITY);
   const [grain, setGrain] = useState(DEFAULT_GRAIN);
 
+  const settings = useMemo<BrushSettings>(
+    () => ({ brushType, brushSize, thinning, smoothing, streamline, stabilizer, taper, opacity, grain }),
+    [brushType, brushSize, thinning, smoothing, streamline, stabilizer, taper, opacity, grain],
+  );
+
+  // useState setters are stable — empty deps is correct.
+  // setBrushType is wrapped to also apply per-brush defaults on switch.
+  const actions = useMemo<BrushSettingsActions>(
+    () => ({
+      setBrushType: (type: BrushType) => {
+        const d = BRUSH_DEFAULTS[type];
+        setBrushType(type);
+        setBrushSize(d.brushSize);
+        setThinning(d.thinning);
+        setSmoothing(d.smoothing);
+        setStreamline(d.streamline);
+        setTaper(d.taper);
+        setGrain(d.grain);
+      },
+      setBrushSize,
+      setOpacity,
+      setStabilizer,
+      setSmoothing,
+      setStreamline,
+      setThinning,
+      setTaper,
+      setGrain,
+    }),
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   return {
-    brushType,
-    setBrushType,
-    brushSize,
-    setBrushSize,
-    thinning,
-    setThinning,
-    smoothing,
-    setSmoothing,
-    streamline,
-    setStreamline,
-    stabilizer,
-    setStabilizer,
-    taper,
-    setTaper,
-    opacity,
-    setOpacity,
-    grain,
-    setGrain,
+    settings,
+    actions,
+    // Individual fields still exposed for App.tsx internals (onPointerDown, grain effect, etc.)
+    brushType, brushSize, thinning, smoothing, streamline, stabilizer, taper, opacity, grain,
   };
 }

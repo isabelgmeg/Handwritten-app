@@ -19,41 +19,26 @@ export function Section({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="mb-4 pb-4 border-b border-border last:border-0 last:mb-0 last:pb-0">
+    <div className="section-root">
       <div
         role={collapsible ? "button" : undefined}
         tabIndex={collapsible ? 0 : undefined}
         onClick={collapsible ? () => setOpen((v) => !v) : undefined}
         onKeyDown={
           collapsible
-            ? (e) =>
-                (e.key === "Enter" || e.key === " ") && setOpen((v) => !v)
+            ? (e) => (e.key === "Enter" || e.key === " ") && setOpen((v) => !v)
             : undefined
         }
-        className={[
-          "flex items-center justify-between mb-3",
-          collapsible ? "cursor-pointer select-none group" : "",
-        ].join(" ")}
+        className={["section-header", collapsible ? "cursor-pointer select-none" : ""].join(" ")}
       >
-        <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-          {label}
-        </span>
+        <span className="label-caps">{label}</span>
         <div className="flex items-center gap-2">
-          {display && (
-            <span
-              className="text-[10px] font-medium tabular-nums bg-secondary text-muted-foreground rounded px-1.5 py-0.5"
-              style={{ fontFamily: "'DM Mono', monospace" }}
-            >
-              {display}
-            </span>
-          )}
+          {display && <span className="value-badge">{display}</span>}
           {collapsible && (
             <ChevronDown
               size={11}
-              className={[
-                "text-muted-foreground/50 group-hover:text-muted-foreground transition-transform duration-150",
-                open ? "rotate-180" : "",
-              ].join(" ")}
+              className="text-[var(--color-text-ghost)] transition-transform duration-150"
+              style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
             />
           )}
         </div>

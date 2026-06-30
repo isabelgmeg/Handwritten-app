@@ -28,7 +28,7 @@ export const BRUSH_CONFIGS: BrushConfig[] = [
   { type: "chisel", label: "Chisel", description: "Chisel tip brush" },
 ];
 
-// Brush defaults
+// Global defaults (also used as the "round" brush defaults)
 export const DEFAULT_BRUSH_SIZE = 20;
 export const DEFAULT_THINNING = 0.6;
 export const DEFAULT_SMOOTHING = 0.5;
@@ -37,6 +37,26 @@ export const DEFAULT_STABILIZER = 4;
 export const DEFAULT_TAPER = 0;
 export const DEFAULT_OPACITY = 1;
 export const DEFAULT_GRAIN = 0;
+
+export interface BrushDefaults {
+  brushSize: number;
+  thinning: number;
+  smoothing: number;
+  streamline: number;
+  taper: number;
+  grain: number;
+}
+
+/** Per-brush default settings applied automatically when switching brush type. */
+export const BRUSH_DEFAULTS: Record<BrushType, BrushDefaults> = {
+  round:       { brushSize: 20, thinning: 0.6,  smoothing: 0.5, streamline: 0.5, taper: 0,  grain: 0  },
+  inkpen:      { brushSize: 12, thinning: 0.7,  smoothing: 0.5, streamline: 0.5, taper: 50, grain: 0  },
+  calligraphy: { brushSize: 28, thinning: 0.8,  smoothing: 0.6, streamline: 0.5, taper: 20, grain: 0  },
+  ballpoint:   { brushSize: 14, thinning: 0.1,  smoothing: 0.6, streamline: 0.6, taper: 0,  grain: 35 },
+  brushpen:    { brushSize: 24, thinning: 0.8,  smoothing: 0.6, streamline: 0.5, taper: 60, grain: 0  },
+  marker:      { brushSize: 32, thinning: 0.15, smoothing: 0.5, streamline: 0.5, taper: 0,  grain: 0  },
+  chisel:      { brushSize: 30, thinning: 0.9,  smoothing: 0.5, streamline: 0.4, taper: 0,  grain: 0  },
+};
 
 // Brush size constraints
 export const BRUSH_SIZE_MIN = 4;
@@ -70,6 +90,9 @@ export const TAPER_MIN = 0;
 export const TAPER_MAX = 100;
 export const TAPER_STEP = 5;
 
+// Ink color — dark oak-blood: near-black with deep warm red undertone
+export const INK_COLOR = "#180806";
+
 // Grain/texture constraints
 export const GRAIN_MIN = 0;
 export const GRAIN_MAX = 100;
@@ -83,7 +106,7 @@ export const PREVIEW_SIZE_MAX = 96;
 export const PREVIEW_SIZE_STEP = 4;
 export const DEFAULT_PREVIEW_SIZE = 40;
 
-export const LETTER_SPACING_MIN = -100;
+export const LETTER_SPACING_MIN = -200;
 export const LETTER_SPACING_MAX = 300;
 export const LETTER_SPACING_STEP = 10;
 export const DEFAULT_LETTER_SPACING = 0;

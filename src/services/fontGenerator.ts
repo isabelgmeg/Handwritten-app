@@ -3,12 +3,13 @@
  * Handles OpenType font file generation and export
  */
 
-import type { FontStyle, StyleGlyphs } from "@/types";
+import type { FontStyle, StyleGlyphs, ScriptMode } from "@/types";
 import {
   UPM,
   ASCENDER,
   DESCENDER,
   GLYPH_ADVANCE_WIDTH_BASE,
+  CONNECT_OVERLAP,
 } from "@/constants";
 import { GLYPH_NAMES } from "@/constants/glyphs";
 import { FONT_STYLES } from "@/constants/characters";
@@ -23,6 +24,7 @@ export async function downloadFont(
   styleKey: FontStyle,
   fontName: string,
   letterSpacing: number,
+  scriptMode: ScriptMode = "normal",
 ): Promise<void> {
   const opentype = await import("opentype.js");
   const drawn = Object.entries(glyphs[styleKey]).filter(
@@ -36,7 +38,8 @@ export async function downloadFont(
 
   const styleMeta = FONT_STYLES.find((s) => s.key === styleKey)!;
   const isBold = styleKey.includes("bold");
-  const glyphAdvance = GLYPH_ADVANCE_WIDTH_BASE + letterSpacing;
+  const overlap = scriptMode === "connected" ? CONNECT_OVERLAP : 0;
+  const glyphAdvance = GLYPH_ADVANCE_WIDTH_BASE + letterSpacing - overlap;
 
   // Create glyphs
   const notdef = new opentype.Glyph({
@@ -115,10 +118,11 @@ export async function downloadAllStyles(
   glyphs: StyleGlyphs,
   fontName: string,
   letterSpacing: number,
+  scriptMode: ScriptMode = "normal",
 ): Promise<void> {
   for (const { key } of FONT_STYLES) {
     if (Object.values(glyphs[key]).some((s) => s.length > 0)) {
-      await downloadFont(glyphs, key, fontName, letterSpacing);
+      await downloadFont(glyphs, key, fontName, letterSpacing, scriptMode);
       // Small gap between downloads
       await new Promise((r) => setTimeout(r, 300));
     }

@@ -5,28 +5,17 @@ interface SliderRowProps {
   min: number;
   max: number;
   step: number;
-  onMinus: () => void;
-  onPlus: () => void;
   onChange: (v: number) => void;
   display?: string;
 }
 
-export function SliderRow({
-  value,
-  min,
-  max,
-  step,
-  onMinus,
-  onPlus,
-  onChange,
-  display,
-}: SliderRowProps) {
+export function SliderRow({ value, min, max, step, onChange, display }: SliderRowProps) {
+  const dec = () => onChange(Math.max(min, parseFloat((value - step).toFixed(10))));
+  const inc = () => onChange(Math.min(max, parseFloat((value + step).toFixed(10))));
+
   return (
-    <div className="flex items-center gap-2">
-      <button
-        onClick={onMinus}
-        className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-      >
+    <div className="slider-row">
+      <button onClick={dec} className="btn btn-icon-sm btn-ghost">
         <Minus size={10} />
       </button>
       <input
@@ -36,22 +25,12 @@ export function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(+e.target.value)}
-        className="flex-1 h-1.5 accent-[#c4782a] cursor-pointer"
+        className="slider-input flex-1"
       />
-      <button
-        onClick={onPlus}
-        className="w-7 h-7 flex-shrink-0 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-      >
+      <button onClick={inc} className="btn btn-icon-sm btn-ghost">
         <Plus size={10} />
       </button>
-      {display && (
-        <span
-          className="text-xs w-9 text-right flex-shrink-0 tabular-nums font-medium text-foreground/75"
-          style={{ fontFamily: "'DM Mono', monospace" }}
-        >
-          {display}
-        </span>
-      )}
+      {display && <span className="slider-row-value">{display}</span>}
     </div>
   );
 }

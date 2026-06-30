@@ -14,17 +14,14 @@ export function ProgressSection({ glyphCounts }: ProgressSectionProps) {
           return (
             <div key={g.label}>
               <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-foreground/70">{g.label}</span>
-                <span
-                  className="text-[10px] tabular-nums text-muted-foreground"
-                  style={{ fontFamily: "'DM Mono', monospace" }}
-                >
+                <span className="text-xs text-[var(--color-text-subtle)]">{g.label}</span>
+                <span className="mono-num text-[10px] text-muted-foreground">
                   {n}/{g.chars.length}
                 </span>
               </div>
-              <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+              <div className="progress-track">
                 <div
-                  className="h-full bg-accent rounded-full transition-all duration-300"
+                  className="progress-fill"
                   style={{ width: `${(n / g.chars.length) * 100}%` }}
                 />
               </div>
