@@ -24,11 +24,11 @@ export function Header({
 }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-card px-5 py-3 flex items-center justify-between gap-4">
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-3">
         <LogoMark className="text-foreground h-[14px] w-auto flex-shrink-0" />
-        <span className="text-border select-none text-lg opacity-60">|</span>
+        <span className="text-border select-none text-lg opacity-60 hidden sm:inline">|</span>
         <span
-          className="text-foreground leading-none truncate"
+          className="text-foreground leading-none hidden sm:inline"
           style={{ fontFamily: "var(--font-script)", fontSize: "1.4rem" }}
         >
           Love letter studio
