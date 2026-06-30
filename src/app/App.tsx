@@ -467,8 +467,8 @@ export default function App() {
             </button>
           </div>
 
-          {/* Backdrop — closes panels when clicking outside */}
-          {(layoutState.leftOpen || layoutState.rightOpen) && (
+          {/* Backdrop — mobile only: closes panels when clicking outside */}
+          {layoutState.isMobile && (layoutState.leftOpen || layoutState.rightOpen) && (
             <div
               className="fixed inset-0 z-40 bg-black/10"
               style={{ top: "var(--header-height, 53px)" }}
