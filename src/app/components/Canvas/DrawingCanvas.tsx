@@ -11,6 +11,7 @@ interface DrawingCanvasProps {
   dotPos: { x: number; y: number };
   dotRadius: number;
   cursorStyle?: string;
+  drawMode?: boolean;
 }
 
 export function DrawingCanvas({
@@ -23,7 +24,17 @@ export function DrawingCanvas({
   dotPos,
   dotRadius,
   cursorStyle = "crosshair",
+  drawMode = true,
 }: DrawingCanvasProps) {
+  const handlePointerDown = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType === "touch" && !drawMode) return;
+    onPointerDown(e);
+  };
+  const handlePointerMove = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    if (e.pointerType === "touch" && !drawMode) return;
+    onPointerMove(e);
+  };
+
   return (
     <div
       className="canvas-wrapper"
@@ -39,9 +50,13 @@ export function DrawingCanvas({
         ref={activeRef}
         width={CW}
         height={CH}
-        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", touchAction: "none", cursor: cursorStyle }}
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
+        style={{
+          position: "absolute", inset: 0, width: "100%", height: "100%",
+          touchAction: drawMode ? "none" : "auto",
+          cursor: cursorStyle,
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
       />

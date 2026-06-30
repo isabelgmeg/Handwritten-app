@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import getStroke from "perfect-freehand";
-import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Download } from "lucide-react";
+import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Pencil, Hand } from "lucide-react";
 import { toast } from "sonner";
 
 // Types
@@ -108,6 +108,9 @@ export default function App() {
 
   // App view
   const [appView, setAppView] = useState<"studio" | "about">("studio");
+
+  // Draw mode — on touch devices, off by default so scroll works
+  const [drawMode, setDrawMode] = useState(false);
 
   // Download dialog state
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
@@ -409,12 +412,17 @@ export default function App() {
         view={appView}
         onAbout={() => setAppView("about")}
         onBack={() => setAppView("studio")}
+        onDownload={handleDownloadFont}
+        onDownloadAll={handleDownloadAllStyles}
+        drawnCount={drawnCount}
+        totalDrawnCount={totalDrawnCount}
+        activeStyleLabel={activeStyleLabel}
       />
 
       {/* Spacer so content clears the fixed header */}
       <div style={{ height: "var(--header-height, 53px)" }} />
 
-      {appView === "about" && <AboutPage onBack={() => setAppView("studio")} />}
+      {appView === "about" && <AboutPage />}
 
       {/* Landing content sits above the studio in one scroll */}
       {appView === "studio" && <LandingPage onEnterStudio={() => {}} hideCta />}
@@ -441,36 +449,12 @@ export default function App() {
             <Settings size={15} />
           </button>
 
-          {/* Centered floating download buttons */}
-          <div
-            className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5"
-            style={{ top: "calc(var(--header-height, 53px) + 10px)" }}
-          >
-            <button
-              onClick={handleDownloadFont}
-              disabled={drawnCount === 0}
-              title={drawnCount === 0 ? `Draw some ${activeStyleLabel} characters first` : `Download ${activeStyleLabel}`}
-              className="btn btn-sm btn-neu-accent gap-1.5"
-            >
-              <Download size={12} />
-              {activeStyleLabel}
-              {drawnCount > 0 && <span className="opacity-60 text-[10px]">{drawnCount}</span>}
-            </button>
-            <button
-              onClick={handleDownloadAllStyles}
-              disabled={totalDrawnCount === 0}
-              title={totalDrawnCount === 0 ? "Draw some characters first" : "Download all drawn styles"}
-              className="btn btn-sm btn-ghost gap-1.5"
-            >
-              All
-              {totalDrawnCount > 0 && <span className="opacity-50 text-[10px]">{totalDrawnCount}</span>}
-            </button>
-          </div>
 
-          {/* Backdrop — closes panels when clicking outside */}
+          {/* Backdrop — touch devices: tapping outside closes panels.
+              On desktop (pointer:fine) it's invisible + non-interactive via CSS. */}
           {(layoutState.leftOpen || layoutState.rightOpen) && (
             <div
-              className="fixed inset-0 z-40 bg-black/10"
+              className="fixed inset-0 z-40 bg-black/10 [@media(pointer:fine)]:pointer-events-none [@media(pointer:fine)]:bg-transparent"
               style={{ top: "var(--header-height, 53px)" }}
               onClick={layoutState.closeAll}
             />
@@ -545,10 +529,24 @@ export default function App() {
                 dotPos={lazyDot.dotPos}
                 dotRadius={dotRadius}
                 cursorStyle={anchorCursor}
+                drawMode={drawMode}
               />
 
               {/* Actions */}
               <div className="flex items-center gap-2">
+                {/* Draw mode toggle — only visible on touch devices */}
+                <button
+                  onClick={() => setDrawMode(v => !v)}
+                  className={[
+                    "btn btn-sm gap-1.5 [@media(pointer:fine)]:hidden",
+                    drawMode ? "btn-neu-accent" : "btn-ghost",
+                  ].join(" ")}
+                  title={drawMode ? "Switch to scroll mode" : "Switch to draw mode"}
+                >
+                  {drawMode ? <Pencil size={12} /> : <Hand size={12} />}
+                  {drawMode ? "Drawing" : "Scroll"}
+                </button>
+
                 <button
                   onClick={undoStroke}
                   disabled={currentStrokes.length === 0}

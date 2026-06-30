@@ -1,8 +1,6 @@
-interface AboutPageProps {
-  onBack: () => void;
-}
+import { LogoMark } from "./common/LogoMark";
 
-export function AboutPage({ onBack }: AboutPageProps) {
+export function AboutPage() {
   return (
     <div className="min-h-[calc(100vh-var(--header-height,53px))] bg-background text-foreground flex flex-col items-center justify-center px-6 py-12 sm:py-20">
       <div className="w-full max-w-md flex flex-col items-center gap-10 sm:gap-12">
@@ -47,12 +45,7 @@ export function AboutPage({ onBack }: AboutPageProps) {
           </p>
         </div>
 
-        <button
-          onClick={onBack}
-          className="btn btn-sm btn-ghost"
-        >
-          ← back to the studio
-        </button>
+        <LogoMark className="h-[12px] w-auto opacity-40" />
 
       </div>
     </div>
