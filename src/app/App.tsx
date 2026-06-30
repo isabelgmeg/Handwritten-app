@@ -422,7 +422,7 @@ export default function App() {
       {/* Spacer so content clears the fixed header */}
       <div style={{ height: "var(--header-height, 53px)" }} />
 
-      {appView === "about" && <AboutPage onBack={() => setAppView("studio")} />}
+      {appView === "about" && <AboutPage />}
 
       {/* Landing content sits above the studio in one scroll */}
       {appView === "studio" && <LandingPage onEnterStudio={() => {}} hideCta />}
