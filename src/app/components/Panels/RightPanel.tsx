@@ -47,22 +47,24 @@ export function RightPanel({
 
   return (
     <aside
-      className="panel-aside border-l fixed right-0 bottom-0 z-50"
+      className="panel-aside border-l fixed right-0 bottom-0 z-50 flex flex-col"
       style={{
         top: "var(--header-height, 53px)",
-        width: isOpen ? 272 : 0,
+        width: isOpen ? "min(272px, 100vw)" : 0,
         boxShadow: isOpen ? "-2px 0 12px rgba(0,0,0,0.08)" : "none",
       }}
     >
-      <div className="panel-scroll w-[272px]">
-        <div className="px-4 py-5">
-          <div className="flex items-center justify-between mb-4">
-            <span className="label-caps">Brush & settings</span>
-            <button onClick={onClose} className="btn btn-icon-sm btn-ghost" aria-label="Close panel">
-              <X size={13} />
-            </button>
-          </div>
-          {/* ── Drawing tool ───────────────────────────────── */}
+      {/* Header — stays fixed while content scrolls */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border flex-shrink-0" style={{ minWidth: 272 }}>
+        <span className="label-caps">Brush & settings</span>
+        <button onClick={onClose} className="btn btn-icon-sm btn-ghost" aria-label="Close panel">
+          <X size={13} />
+        </button>
+      </div>
+
+      {/* Scrollable settings */}
+      <div className="panel-scroll flex-1" style={{ minWidth: 272 }}>
+        <div className="px-4 py-4">
           <BrushSection brushType={brushType} onBrushTypeChange={setBrushType} />
           <BrushSettingsSection
             brushSize={brushSize}
@@ -85,11 +87,7 @@ export function RightPanel({
             grain={grain}
             onGrainChange={setGrain}
           />
-
-          {/* ── Font behavior ──────────────────────────────── */}
           <ConnectedScriptSection scriptMode={scriptMode} onScriptModeChange={onScriptModeChange} />
-
-          {/* ── Preview output ─────────────────────────────── */}
           <PreviewSettingsSection
             previewSize={previewSize}
             onPreviewSizeChange={onPreviewSizeChange}
@@ -98,8 +96,6 @@ export function RightPanel({
             lineHeight={lineHeight}
             onLineHeightChange={onLineHeightChange}
           />
-
-          {/* ── Appearance ─────────────────────────────────── */}
           <ThemeSection themeHue={themeHue} onThemeHueChange={onThemeHueChange} />
         </div>
       </div>

@@ -21,20 +21,23 @@ export function LeftPanel({
 }: LeftPanelProps) {
   return (
     <aside
-      className="panel-aside border-r fixed left-0 bottom-0 z-50"
+      className="panel-aside border-r fixed left-0 bottom-0 z-50 flex flex-col"
       style={{
         top: "var(--header-height, 53px)",
-        width: isOpen ? 208 : 0,
+        width: isOpen ? "min(208px, 100vw)" : 0,
         boxShadow: isOpen ? "2px 0 12px rgba(0,0,0,0.08)" : "none",
       }}
     >
-      <div className="panel-scroll w-52 py-4">
-        <div className="flex items-center justify-between px-3 mb-3">
-          <span className="label-caps">Characters</span>
-          <button onClick={onClose} className="btn btn-icon-sm btn-ghost" aria-label="Close panel">
-            <X size={13} />
-          </button>
-        </div>
+      {/* Header — stays fixed while content scrolls */}
+      <div className="flex items-center justify-between px-3 py-3 border-b border-border flex-shrink-0" style={{ minWidth: 208 }}>
+        <span className="label-caps">Characters</span>
+        <button onClick={onClose} className="btn btn-icon-sm btn-ghost" aria-label="Close panel">
+          <X size={13} />
+        </button>
+      </div>
+
+      {/* Scrollable character list */}
+      <div className="panel-scroll py-3 flex-1" style={{ minWidth: 208 }}>
         {CHAR_GROUPS.map((group) => (
           <div key={group.label} className="mb-5 px-3">
             <div className="label-caps mb-2 px-1">{group.label}</div>
