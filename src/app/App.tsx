@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import getStroke from "perfect-freehand";
-import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Download, Pencil, Hand } from "lucide-react";
+import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Pencil, Hand } from "lucide-react";
 import { toast } from "sonner";
 
 // Types
@@ -412,6 +412,11 @@ export default function App() {
         view={appView}
         onAbout={() => setAppView("about")}
         onBack={() => setAppView("studio")}
+        onDownload={handleDownloadFont}
+        onDownloadAll={handleDownloadAllStyles}
+        drawnCount={drawnCount}
+        totalDrawnCount={totalDrawnCount}
+        activeStyleLabel={activeStyleLabel}
       />
 
       {/* Spacer so content clears the fixed header */}
@@ -444,31 +449,6 @@ export default function App() {
             <Settings size={15} />
           </button>
 
-          {/* Centered floating download buttons */}
-          <div
-            className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5"
-            style={{ top: "calc(var(--header-height, 53px) + 10px)" }}
-          >
-            <button
-              onClick={handleDownloadFont}
-              disabled={drawnCount === 0}
-              title={drawnCount === 0 ? `Draw some ${activeStyleLabel} characters first` : `Download ${activeStyleLabel}`}
-              className="btn btn-sm btn-neu-accent gap-1.5"
-            >
-              <Download size={12} />
-              {activeStyleLabel}
-              {drawnCount > 0 && <span className="opacity-60 text-[10px]">{drawnCount}</span>}
-            </button>
-            <button
-              onClick={handleDownloadAllStyles}
-              disabled={totalDrawnCount === 0}
-              title={totalDrawnCount === 0 ? "Draw some characters first" : "Download all drawn styles"}
-              className="btn btn-sm btn-ghost gap-1.5"
-            >
-              All
-              {totalDrawnCount > 0 && <span className="opacity-50 text-[10px]">{totalDrawnCount}</span>}
-            </button>
-          </div>
 
           {/* Backdrop — touch devices: tapping outside closes panels.
               On desktop (pointer:fine) it's invisible + non-interactive via CSS. */}
