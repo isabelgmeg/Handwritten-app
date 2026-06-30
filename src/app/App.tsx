@@ -467,10 +467,11 @@ export default function App() {
             </button>
           </div>
 
-          {/* Backdrop — mobile only: closes panels when clicking outside */}
-          {layoutState.isMobile && (layoutState.leftOpen || layoutState.rightOpen) && (
+          {/* Backdrop — touch devices: tapping outside closes panels.
+              On desktop (pointer:fine) it's invisible + non-interactive via CSS. */}
+          {(layoutState.leftOpen || layoutState.rightOpen) && (
             <div
-              className="fixed inset-0 z-40 bg-black/10"
+              className="fixed inset-0 z-40 bg-black/10 [@media(pointer:fine)]:pointer-events-none [@media(pointer:fine)]:bg-transparent"
               style={{ top: "var(--header-height, 53px)" }}
               onClick={layoutState.closeAll}
             />

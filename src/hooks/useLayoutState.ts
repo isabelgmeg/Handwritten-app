@@ -1,36 +1,36 @@
 import { useState, useCallback, useEffect } from "react";
 
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth < 768 : false
+function useIsTouchDevice() {
+  const [isTouch, setIsTouch] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(pointer: coarse)").matches : false
   );
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    const mq = window.matchMedia("(pointer: coarse)");
+    const handler = (e: MediaQueryListEvent) => setIsTouch(e.matches);
     mq.addEventListener("change", handler);
     return () => mq.removeEventListener("change", handler);
   }, []);
-  return isMobile;
+  return isTouch;
 }
 
 export function useLayoutState() {
   const [leftOpen, setLeftOpen] = useState(false);
   const [rightOpen, setRightOpen] = useState(false);
-  const isMobile = useIsMobile();
+  const isTouch = useIsTouchDevice();
 
   const toggleLeft = useCallback(() => {
     setLeftOpen(v => {
-      if (!v && isMobile) setRightOpen(false);
+      if (!v && isTouch) setRightOpen(false);
       return !v;
     });
-  }, [isMobile]);
+  }, [isTouch]);
 
   const toggleRight = useCallback(() => {
     setRightOpen(v => {
-      if (!v && isMobile) setLeftOpen(false);
+      if (!v && isTouch) setLeftOpen(false);
       return !v;
     });
-  }, [isMobile]);
+  }, [isTouch]);
 
   const closeAll = useCallback(() => {
     setLeftOpen(false);
@@ -45,6 +45,6 @@ export function useLayoutState() {
     toggleLeft,
     toggleRight,
     closeAll,
-    isMobile,
+    isTouch,
   };
 }
