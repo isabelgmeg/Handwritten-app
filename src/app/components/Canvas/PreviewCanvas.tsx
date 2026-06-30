@@ -1,20 +1,60 @@
-import React from "react";
+import { useRef, useEffect, useCallback } from "react";
+import { renderPreview } from "@/services";
+import { getCanvasTheme } from "@/utils";
+import type { Stroke, ScriptMode } from "@/types";
 
 interface PreviewCanvasProps {
-  previewRef: React.RefObject<HTMLCanvasElement>;
+  previewText: string;
+  glyphs: Record<string, Stroke[]>;
+  previewSize: number;
+  letterSpacing: number;
+  lineHeight: number;
+  scriptMode: ScriptMode;
 }
 
-export function PreviewCanvas({ previewRef }: PreviewCanvasProps) {
+export function PreviewCanvas({
+  previewText,
+  glyphs,
+  previewSize,
+  letterSpacing,
+  lineHeight,
+  scriptMode,
+}: PreviewCanvasProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Keep render params in a ref so the ResizeObserver always reads fresh values
+  const paramsRef = useRef({ previewText, glyphs, previewSize, letterSpacing, lineHeight, scriptMode });
+  paramsRef.current = { previewText, glyphs, previewSize, letterSpacing, lineHeight, scriptMode };
+
+  const render = useCallback(() => {
+    const canvas = canvasRef.current;
+    const wrapper = wrapperRef.current;
+    if (!canvas || !wrapper) return;
+    const w = wrapper.clientWidth;
+    if (w <= 0) return;
+    canvas.width = w;
+    const { previewText, glyphs, previewSize, letterSpacing, lineHeight, scriptMode } = paramsRef.current;
+    renderPreview(canvas, previewText, glyphs, previewSize, letterSpacing, getCanvasTheme(), scriptMode, lineHeight);
+  }, []);
+
+  // Observe container width changes and re-render
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const ro = new ResizeObserver(render);
+    ro.observe(wrapper);
+    return () => ro.disconnect();
+  }, [render]);
+
+  // Re-render whenever props change
+  useEffect(() => {
+    render();
+  }, [previewText, glyphs, previewSize, letterSpacing, lineHeight, scriptMode, render]);
+
   return (
-    <div
-      className="rounded overflow-hidden"
-      style={{ border: "1px solid rgba(28,20,9,0.1)" }}
-    >
-      <canvas
-        ref={previewRef}
-        width={800}
-        style={{ display: "block", width: "100%" }}
-      />
+    <div ref={wrapperRef} className="preview-wrapper">
+      <canvas ref={canvasRef} style={{ display: "block" }} />
     </div>
   );
 }

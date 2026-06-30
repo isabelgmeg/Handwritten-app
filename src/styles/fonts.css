@@ -1,1 +1,21 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&family=Pinyon+Script&family=Great+Vibes&display=swap');
+/* ─────────────────────────────────────────────────────────────────────────────
+   FONT IMPORTS
+   --font-display is the editorial / expressionist face used for headings
+   and the wordmark. Currently using Playfair Display as a placeholder —
+   swap the @font-face src below when the custom font file is ready.
+───────────────────────────────────────────────────────────────────────────── */
+
+/* UI fonts — DM Sans (body), DM Mono (code/numbers) */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
+
+/* Display / editorial serif — Amiri for memorandum body and UI headings */
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400;1,700&display=swap');
+
+/* Custom handwriting font — exported from the Love Letter Studio */
+@font-face {
+  font-family: 'MyHandwriting';
+  src: url('/fonts/My_Handwritingisa.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

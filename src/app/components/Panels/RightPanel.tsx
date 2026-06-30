@@ -1,130 +1,97 @@
 import {
+  ConnectedScriptSection,
   BrushSection,
-  SizeSection,
-  OpacitySection,
-  StabilizerSection,
+  BrushSettingsSection,
   StrokeQualitySection,
-  GrainSection,
-  ProgressSection,
+  PreviewSettingsSection,
+  ThemeSection,
 } from "../Sections";
-import type { BrushType, StyleGlyphs, FontStyle } from "@/types";
-import { CHAR_GROUPS } from "@/constants";
+import type { BrushSettings, BrushSettingsActions, ScriptMode } from "@/types";
 
 interface RightPanelProps {
   isOpen: boolean;
-  brushType: BrushType;
-  onBrushTypeChange: (type: BrushType) => void;
-  brushSize: number;
-  onBrushSizeChange: (size: number) => void;
-  onBrushSizeMinus: () => void;
-  onBrushSizePlus: () => void;
-  opacity: number;
-  onOpacityChange: (opacity: number) => void;
-  onOpacityMinus: () => void;
-  onOpacityPlus: () => void;
-  stabilizer: number;
-  onStabilizerChange: (stabilizer: number) => void;
-  onStabilizerMinus: () => void;
-  onStabilizerPlus: () => void;
-  smoothing: number;
-  onSmoothingChange: (v: number) => void;
-  streamline: number;
-  onStreamlineChange: (v: number) => void;
-  thinning: number;
-  onThinningChange: (v: number) => void;
-  taper: number;
-  onTaperChange: (v: number) => void;
-  grain: number;
-  onGrainChange: (v: number) => void;
-  glyphs: StyleGlyphs;
-  activeStyle: FontStyle;
+  brushSettings: BrushSettings;
+  brushActions: BrushSettingsActions;
+  scriptMode: ScriptMode;
+  onScriptModeChange: (mode: ScriptMode) => void;
+  previewSize: number;
+  onPreviewSizeChange: (v: number) => void;
+  letterSpacing: number;
+  onLetterSpacingChange: (v: number) => void;
+  lineHeight: number;
+  onLineHeightChange: (v: number) => void;
+  themeHue: number;
+  onThemeHueChange: (hue: number) => void;
 }
 
 export function RightPanel({
   isOpen,
-  brushType,
-  onBrushTypeChange,
-  brushSize,
-  onBrushSizeChange,
-  onBrushSizeMinus,
-  onBrushSizePlus,
-  opacity,
-  onOpacityChange,
-  onOpacityMinus,
-  onOpacityPlus,
-  stabilizer,
-  onStabilizerChange,
-  onStabilizerMinus,
-  onStabilizerPlus,
-  smoothing,
-  onSmoothingChange,
-  streamline,
-  onStreamlineChange,
-  thinning,
-  onThinningChange,
-  taper,
-  onTaperChange,
-  grain,
-  onGrainChange,
-  glyphs,
-  activeStyle,
+  brushSettings,
+  brushActions,
+  scriptMode,
+  onScriptModeChange,
+  previewSize,
+  onPreviewSizeChange,
+  letterSpacing,
+  onLetterSpacingChange,
+  lineHeight,
+  onLineHeightChange,
+  themeHue,
+  onThemeHueChange,
 }: RightPanelProps) {
-  // Calculate glyph counts for progress
-  const glyphCounts = Object.fromEntries(
-    CHAR_GROUPS.map((group) => [
-      group.label,
-      group.chars.filter((c) => (glyphs[activeStyle][c]?.length ?? 0) > 0)
-        .length,
-    ])
-  );
+  const { brushType, brushSize, opacity, stabilizer, smoothing, streamline, thinning, taper, grain } = brushSettings;
+  const { setBrushType, setBrushSize, setOpacity, setStabilizer, setSmoothing, setStreamline, setThinning, setTaper, setGrain } = brushActions;
 
   return (
     <aside
-      className="border-l border-border bg-card flex-shrink-0 overflow-hidden"
-      style={{ width: isOpen ? 272 : 0, transition: "width 200ms ease" }}
+      className="panel-aside border-l fixed right-0 bottom-0 z-50"
+      style={{
+        top: "var(--header-height, 53px)",
+        width: isOpen ? 272 : 0,
+        boxShadow: isOpen ? "-2px 0 12px rgba(0,0,0,0.08)" : "none",
+      }}
     >
-      <div className="w-[272px] h-full overflow-y-auto">
-        <div className="px-4 py-5 space-y-0">
-          <BrushSection
-            brushType={brushType}
-            onBrushTypeChange={onBrushTypeChange}
-          />
-
-          <SizeSection
+      <div className="panel-scroll w-[272px]">
+        <div className="px-4 py-5">
+          {/* ── Drawing tool ───────────────────────────────── */}
+          <BrushSection brushType={brushType} onBrushTypeChange={setBrushType} />
+          <BrushSettingsSection
             brushSize={brushSize}
-            onSizeChange={onBrushSizeChange}
-            onSizeMinus={onBrushSizeMinus}
-            onSizePlus={onBrushSizePlus}
-          />
-
-          <OpacitySection
+            onBrushSizeChange={setBrushSize}
             opacity={opacity}
-            onOpacityChange={onOpacityChange}
-            onOpacityMinus={onOpacityMinus}
-            onOpacityPlus={onOpacityPlus}
-          />
-
-          <StabilizerSection
+            onOpacityChange={setOpacity}
             stabilizer={stabilizer}
-            onStabilizerChange={onStabilizerChange}
-            onStabilizerMinus={onStabilizerMinus}
-            onStabilizerPlus={onStabilizerPlus}
+            onStabilizerChange={setStabilizer}
           />
-
           <StrokeQualitySection
+            brushType={brushType}
             smoothing={smoothing}
-            onSmoothingChange={onSmoothingChange}
+            onSmoothingChange={setSmoothing}
             streamline={streamline}
-            onStreamlineChange={onStreamlineChange}
+            onStreamlineChange={setStreamline}
             thinning={thinning}
-            onThinningChange={onThinningChange}
+            onThinningChange={setThinning}
             taper={taper}
-            onTaperChange={onTaperChange}
+            onTaperChange={setTaper}
+            grain={grain}
+            onGrainChange={setGrain}
           />
 
-          <GrainSection grain={grain} onGrainChange={onGrainChange} />
+          {/* ── Font behavior ──────────────────────────────── */}
+          <ConnectedScriptSection scriptMode={scriptMode} onScriptModeChange={onScriptModeChange} />
 
-          <ProgressSection glyphCounts={glyphCounts} />
+          {/* ── Preview output ─────────────────────────────── */}
+          <PreviewSettingsSection
+            previewSize={previewSize}
+            onPreviewSizeChange={onPreviewSizeChange}
+            letterSpacing={letterSpacing}
+            onLetterSpacingChange={onLetterSpacingChange}
+            lineHeight={lineHeight}
+            onLineHeightChange={onLineHeightChange}
+          />
+
+          {/* ── Appearance ─────────────────────────────────── */}
+          <ThemeSection themeHue={themeHue} onThemeHueChange={onThemeHueChange} />
         </div>
       </div>
     </aside>

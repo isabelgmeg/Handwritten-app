@@ -22,13 +22,8 @@ export function LabeledSlider({
   return (
     <div className="mb-3.5 last:mb-0">
       <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs text-foreground/75">{label}</span>
-        <span
-          className="text-[10px] font-medium tabular-nums bg-secondary text-muted-foreground rounded px-1.5 py-0.5"
-          style={{ fontFamily: "'DM Mono', monospace" }}
-        >
-          {display}
-        </span>
+        <span className="text-xs text-[var(--color-text-subtle)]">{label}</span>
+        <span className="value-badge">{display}</span>
       </div>
       <input
         type="range"
@@ -37,13 +32,9 @@ export function LabeledSlider({
         step={step}
         value={value}
         onChange={(e) => onChange(+e.target.value)}
-        className="w-full h-1.5 accent-[#c4782a] cursor-pointer"
+        className="slider-input"
       />
-      {hint && (
-        <p className="text-[10px] text-muted-foreground/60 mt-1 leading-tight">
-          {hint}
-        </p>
-      )}
+      {hint && <p className="field-hint">{hint}</p>}
     </div>
   );
 }

@@ -2,93 +2,71 @@ import type { BrushType } from "@/types";
 
 interface BrushIconProps {
   type: BrushType;
-  active: boolean;
 }
 
-export function BrushIcon({ type, active }: BrushIconProps) {
-  const c = active ? "rgba(255,255,255,0.85)" : "rgba(28,20,9,0.5)";
-  const cb = active ? "rgba(120,140,220,0.9)" : "rgba(40,40,120,0.55)";
-
+export function BrushIcon({ type }: BrushIconProps) {
   if (type === "round") {
     return (
-      <svg width="18" height="14" viewBox="0 0 18 14">
-        <ellipse cx="4" cy="7" rx="3.5" ry="3.5" fill={c} />
-        <ellipse cx="10" cy="7" rx="2.5" ry="2.5" fill={c} />
-        <ellipse cx="15" cy="7" rx="1.5" ry="1.5" fill={c} />
+      <svg width="20" height="16" viewBox="0 0 20 16" fill="currentColor">
+        <ellipse cx="4.5" cy="8" rx="3.5" ry="3.5" />
+        <ellipse cx="11" cy="8" rx="2.5" ry="2.5" />
+        <ellipse cx="17" cy="8" rx="1.5" ry="1.5" />
       </svg>
     );
   }
 
   if (type === "inkpen") {
     return (
-      <svg width="18" height="14" viewBox="0 0 18 14">
-        <path d="M1 7 Q9 2 17 7 Q9 12 1 7Z" fill={c} />
+      <svg width="20" height="16" viewBox="0 0 20 16" fill="currentColor">
+        <path d="M1 8 Q10 2 19 8 Q10 14 1 8Z" />
       </svg>
     );
   }
 
   if (type === "calligraphy") {
     return (
-      <svg width="18" height="14" viewBox="0 0 18 14">
-        <path d="M2 12 L8 2 L10 2 L16 10 L14 11 L9 4 L5 13Z" fill={c} />
+      <svg width="20" height="16" viewBox="0 0 20 16" fill="currentColor">
+        <path d="M2 14 L8 2 L11 2 L17 11 L15 12 L10 4 L5 15Z" />
       </svg>
     );
   }
 
   if (type === "ballpoint") {
     return (
-      <svg width="18" height="14" viewBox="0 0 18 14">
+      <svg width="20" height="16" viewBox="0 0 20 16" fill="none">
         <path
-          d="M2 11 Q6 5 10 7 Q14 9 16 3"
-          stroke={cb}
-          strokeWidth="1.5"
-          fill="none"
+          d="M2 12 Q7 5 11 8 Q15 11 18 3"
+          stroke="currentColor"
+          strokeWidth="1.6"
           strokeLinecap="round"
         />
-        <circle cx="16" cy="3" r="1.2" fill={cb} />
+        <circle cx="18" cy="3" r="1.3" fill="currentColor" />
       </svg>
     );
   }
 
   if (type === "brushpen") {
     return (
-      <svg width="18" height="14" viewBox="0 0 18 14">
-        <path d="M1 10 Q5 3 9 5 Q13 7 17 6 L17 7 Q13 8 9 6 Q5 5 2 12Z" fill={c} />
+      <svg width="20" height="16" viewBox="0 0 20 16" fill="currentColor">
+        <path d="M1 11 Q5 3 10 5.5 Q15 8 19 7 L19 8 Q15 9 10 6.5 Q5 5 2 13Z" />
       </svg>
     );
   }
 
   if (type === "marker") {
     return (
-      <svg width="18" height="14" viewBox="0 0 18 14">
-        <rect
-          x="1"
-          y="4.5"
-          width="16"
-          height="5"
-          rx="1"
-          fill={c}
-          opacity="0.75"
-        />
-        <rect
-          x="1"
-          y="4.5"
-          width="16"
-          height="5"
-          rx="1"
-          fill="none"
-          stroke={c}
-          strokeWidth="0.5"
-        />
+      <svg width="20" height="16" viewBox="0 0 20 16">
+        <rect x="1" y="5" width="18" height="6" rx="1.5" fill="currentColor" opacity="0.7" />
+        <rect x="1" y="5" width="18" height="6" rx="1.5" fill="none" stroke="currentColor" strokeWidth="0.6" />
       </svg>
     );
   }
 
-  // Chisel
+  // chisel
   return (
-    <svg width="18" height="14" viewBox="0 0 18 14">
-      <rect x="1" y="5" width="16" height="4" rx="0.5" fill={c} />
-      <line x1="9" y1="1" x2="9" y2="13" stroke={c} strokeWidth="0.8" />
+    <svg width="20" height="16" viewBox="0 0 20 16" fill="currentColor">
+      <rect x="1" y="5.5" width="18" height="5" rx="0.5" />
+      <line x1="10" y1="1" x2="10" y2="15" stroke="currentColor" strokeWidth="0.9" />
     </svg>
   );
 }

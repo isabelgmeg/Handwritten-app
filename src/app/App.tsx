@@ -1,30 +1,35 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import getStroke from "perfect-freehand";
-import { ChevronLeft, ChevronRight, Undo2, Trash2, Type, ChevronUp, ChevronDown, Minus, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Download } from "lucide-react";
+import { toast } from "sonner";
 
 // Types
 import type { BrushType, Stroke, StyleGlyphs, PFOptions } from "@/types";
+import type { FontFormat } from "@/services/fontGenerator";
 
 // Constants
 import {
   CANVAS_WIDTH as CW,
   CANVAS_HEIGHT as CH,
+  CAP_Y,
+  DESC_Y,
 } from "@/constants";
-import { ALL_CHARS, PHRASES, FONT_STYLES } from "@/constants";
+import { ALL_CHARS, FONT_STYLES } from "@/constants";
 
 // Services
 import {
   LazyBrush,
   fullRedraw,
-  renderPreview,
   downloadFont,
   downloadAllStyles,
-  autoGenerateBold,
-  autoGenerateItalic,
-  autoGenerateBoldItalic,
   getOrCreateGrainCanvas,
+  getOrCreateGrainPixels,
+  getAnchorPositions,
+  applyBrushFill,
+  drawBallpointDabs,
 } from "@/services";
-import { buildBrushOptions } from "@/utils";
+import { buildBrushOptions, svgPathFromStroke, getCanvasTheme } from "@/utils";
+import type { CanvasTheme } from "@/utils/canvasTheme";
 
 // Hooks
 import {
@@ -38,10 +43,15 @@ import {
 
 // Components
 import { Header } from "./components/Panels/Header";
+import { LandingPage } from "./components/LandingPage";
+import { AboutPage } from "./components/AboutPage";
+import { StyleCircle } from "./components/common/StyleCircle";
 import { LeftPanel } from "./components/Panels/LeftPanel";
 import { RightPanel } from "./components/Panels/RightPanel";
 import { DrawingCanvas } from "./components/Canvas/DrawingCanvas";
-import { PreviewCanvas } from "./components/Canvas/PreviewCanvas";
+import { LoveLetterPreview } from "./components/Canvas/LoveLetterPreview";
+import { DownloadDialog } from "./components/common/DownloadDialog";
+import { Toaster } from "./components/ui/sonner";
 
 // ── Initial State ────────────────────────────────────────────────────────────
 
@@ -58,7 +68,6 @@ export default function App() {
   // Refs for canvas and drawing
   const committedRef = useRef<HTMLCanvasElement>(null);
   const activeRef = useRef<HTMLCanvasElement>(null);
-  const previewRef = useRef<HTMLCanvasElement>(null);
   const fontInputRef = useRef<HTMLInputElement>(null);
   const lazy = useRef(new LazyBrush());
   const isDrawing = useRef(false);
@@ -67,10 +76,12 @@ export default function App() {
   const currentOpacRef = useRef(1);
   const currentBrushTR = useRef<BrushType>("round");
   const canvasDisplayScale = useRef(1);
+  const isDraggingAnchor = useRef(false);
+  const canvasThemeRef = useRef<CanvasTheme>(getCanvasTheme());
+  const [anchorCursor, setAnchorCursor] = useState("crosshair");
 
   // Glyph state
   const [glyphs, setGlyphs] = useState<StyleGlyphs>(EMPTY_STYLE_GLYPHS);
-  const glyphState = useGlyphState(setGlyphs, "regular");
 
   // Brush settings
   const brushSettings = useBrushSettings();
@@ -81,15 +92,35 @@ export default function App() {
   // Canvas state
   const canvasState = useCanvasState();
 
+  const glyphState = useGlyphState(setGlyphs, canvasState.activeStyle);
+
   // Layout state
   const layoutState = useLayoutState();
 
   // Lazy dot state
   const lazyDot = useLazyDot();
 
+  // Theme hue
+  const [themeHue, setThemeHue] = useState(48);
+  useEffect(() => {
+    document.documentElement.style.setProperty("--theme-hue", String(themeHue));
+  }, [themeHue]);
+
+  // App view
+  const [appView, setAppView] = useState<"studio" | "about">("studio");
+
+  // Download dialog state
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [downloadDialogMode, setDownloadDialogMode] = useState<"single" | "all">("single");
+  const [isDownloading, setIsDownloading] = useState(false);
+
   const currentStrokes = glyphs[canvasState.activeStyle][canvasState.currentChar] ?? [];
   const drawnCount = Object.values(glyphs[canvasState.activeStyle]).filter((s) => s.length > 0).length;
-  const regularDrawnCount = Object.values(glyphs.regular).filter((s) => s.length > 0).length;
+  const totalDrawnCount = Object.values(glyphs).reduce(
+    (sum, styleGlyphs) => sum + Object.values(styleGlyphs).filter((s) => s.length > 0).length,
+    0
+  );
+  const activeStyleLabel = FONT_STYLES.find((s) => s.key === canvasState.activeStyle)?.label ?? "";
   const dotRadius = brushSettings.stabilizer * canvasDisplayScale.current;
 
   // ── Event Handlers ───────────────────────────────────────────────────────
@@ -132,6 +163,16 @@ export default function App() {
       const x = (e.clientX - rect.left) * sx;
       const y = (e.clientY - rect.top) * sy;
 
+      if (canvasState.scriptMode === "connected") {
+        const { entryX, exitX } = getAnchorPositions(previewState.letterSpacing, canvasState.scriptMode);
+        const ay = canvasState.connectAnchorY;
+        const HIT = 14;
+        if (Math.hypot(x - entryX, y - ay) < HIT || Math.hypot(x - exitX, y - ay) < HIT) {
+          isDraggingAnchor.current = true;
+          return;
+        }
+      }
+
       lazy.current.x = x;
       lazy.current.y = y;
       currentOpts.current = buildBrushOptions(
@@ -147,7 +188,7 @@ export default function App() {
       currentPoints.current = [[x, y, e.pressure > 0 ? e.pressure : 0.5]];
       isDrawing.current = true;
     },
-    [brushSettings]
+    [brushSettings, canvasState, previewState.letterSpacing]
   );
 
   const renderActiveStroke = useCallback(() => {
@@ -157,25 +198,27 @@ export default function App() {
     ctx.clearRect(0, 0, CW, CH);
     const pts = currentPoints.current;
     if (pts.length < 2) return;
+
+    if (currentBrushTR.current === "ballpoint") {
+      drawBallpointDabs(
+        ctx,
+        pts,
+        currentOpts.current.size,
+        currentOpacRef.current,
+        brushSettings.grain,
+        getOrCreateGrainPixels(),
+        canvasThemeRef.current,
+      );
+      return;
+    }
+
     const outline = getStroke(pts, currentOpts.current);
     if (outline.length < 4) return;
-
-    const path = new Path2D(
-      outline
-        .map(([x0, y0], i) => {
-          const [x1, y1] = outline[(i + 1) % outline.length];
-          return `${i === 0 ? "M" : "Q"} ${x0} ${y0} ${(x0 + x1) / 2} ${(y0 + y1) / 2}`;
-        })
-        .join(" ") + " Z"
-    );
-
+    const path = new Path2D(svgPathFromStroke(outline));
     ctx.save();
-    ctx.globalAlpha = currentOpacRef.current;
-    ctx.fillStyle =
-      currentBrushTR.current === "ballpoint" ? "#1a1835" : "#1c1409";
-    ctx.fill(path);
+    applyBrushFill(ctx, path, pts, currentOpts.current, currentBrushTR.current, currentOpacRef.current, canvasThemeRef.current);
     ctx.restore();
-  }, []);
+  }, [brushSettings.grain]);
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -188,12 +231,25 @@ export default function App() {
         const px = (evt.clientX - rect.left) * sx;
         const py = (evt.clientY - rect.top) * sy;
         const pressure = evt.pressure > 0 ? evt.pressure : 0.5;
-        const moved = lazy.current.update(px, py, brushSettings.stabilizer);
 
-        lazyDot.setDotPos({
-          x: lazy.current.x / sx,
-          y: lazy.current.y / sy,
-        });
+        if (isDraggingAnchor.current) {
+          const clampedY = Math.max(CAP_Y + 10, Math.min(DESC_Y - 10, py));
+          canvasState.setConnectAnchorY(clampedY);
+          continue;
+        }
+
+        if (canvasState.scriptMode === "connected" && !isDrawing.current) {
+          const { entryX, exitX } = getAnchorPositions(previewState.letterSpacing, canvasState.scriptMode);
+          const ay = canvasState.connectAnchorY;
+          const HIT = 14;
+          const near =
+            Math.hypot(px - entryX, py - ay) < HIT ||
+            Math.hypot(px - exitX, py - ay) < HIT;
+          setAnchorCursor(near ? "ns-resize" : "crosshair");
+        }
+
+        const moved = lazy.current.update(px, py, brushSettings.stabilizer);
+        lazyDot.setDotPos({ x: lazy.current.x / sx, y: lazy.current.y / sy });
         lazyDot.setShowDot(true);
 
         if (!isDrawing.current) continue;
@@ -206,10 +262,14 @@ export default function App() {
         }
       }
     },
-    [brushSettings.stabilizer, lazyDot, renderActiveStroke]
+    [brushSettings.stabilizer, lazyDot, renderActiveStroke, canvasState, previewState.letterSpacing]
   );
 
   const onPointerUp = useCallback(() => {
+    if (isDraggingAnchor.current) {
+      isDraggingAnchor.current = false;
+      return;
+    }
     if (!isDrawing.current || currentPoints.current.length === 0) return;
     isDrawing.current = false;
     lazyDot.setShowDot(false);
@@ -234,33 +294,76 @@ export default function App() {
     glyphState.clearGlyph(canvasState.currentChar);
   }, [canvasState.currentChar, glyphState]);
 
-  const handleAutoGenerateBold = useCallback(() => {
-    setGlyphs((prev) => autoGenerateBold(prev));
+  const handleDownloadFont = useCallback(() => {
+    setDownloadDialogMode("single");
+    setDownloadDialogOpen(true);
   }, []);
 
-  const handleAutoGenerateItalic = useCallback(() => {
-    setGlyphs((prev) => autoGenerateItalic(prev));
+  const handleDownloadAllStyles = useCallback(() => {
+    setDownloadDialogMode("all");
+    setDownloadDialogOpen(true);
   }, []);
 
-  const handleAutoGenerateBoldItalic = useCallback(() => {
-    setGlyphs((prev) => autoGenerateBoldItalic(prev));
-  }, []);
+  const handleConfirmDownload = useCallback(
+    async (name: string, format: FontFormat) => {
+      setIsDownloading(true);
+      try {
+        const result =
+          downloadDialogMode === "all"
+            ? await downloadAllStyles(
+                glyphs,
+                name,
+                previewState.letterSpacing,
+                canvasState.scriptMode,
+                format,
+              )
+            : await downloadFont(
+                glyphs,
+                canvasState.activeStyle,
+                name,
+                previewState.letterSpacing,
+                canvasState.scriptMode,
+                format,
+              );
 
-  const handleDownloadFont = useCallback(async () => {
-    await downloadFont(glyphs, canvasState.activeStyle, canvasState.fontName, previewState.letterSpacing);
-  }, [glyphs, canvasState.activeStyle, canvasState.fontName, previewState.letterSpacing]);
-
-  const handleDownloadAllStyles = useCallback(async () => {
-    await downloadAllStyles(glyphs, canvasState.fontName, previewState.letterSpacing);
-  }, [glyphs, canvasState.fontName, previewState.letterSpacing]);
+        if (!result.ok) {
+          toast.error(result.error ?? "Download failed");
+        } else {
+          setDownloadDialogOpen(false);
+          canvasState.setFontName(name);
+          if (result.warnings.length > 0) {
+            toast.warning("Font downloaded with warnings", {
+              description: result.warnings.slice(0, 3).join("\n"),
+              duration: 6000,
+            });
+          } else {
+            toast.success("Font downloaded successfully!");
+          }
+        }
+      } catch (err) {
+        toast.error(
+          `Unexpected error: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      } finally {
+        setIsDownloading(false);
+      }
+    },
+    [
+      downloadDialogMode,
+      glyphs,
+      previewState.letterSpacing,
+      canvasState,
+    ],
+  );
 
   // ── Effects ──────────────────────────────────────────────────────────────
 
-  // Redraw committed canvas
   useEffect(() => {
     const c = committedRef.current;
     const isItalic = canvasState.activeStyle === "italic" || canvasState.activeStyle === "bold-italic";
     const grainCanvas = getOrCreateGrainCanvas();
+    // Refresh theme once per redraw cycle (not on every pointer event)
+    canvasThemeRef.current = getCanvasTheme();
     if (c) {
       fullRedraw(
         c,
@@ -270,8 +373,12 @@ export default function App() {
         canvasState.showTemplate,
         brushSettings.grain,
         grainCanvas,
+        canvasThemeRef.current,
         canvasState.templateFont,
-        isItalic
+        isItalic,
+        canvasState.scriptMode,
+        previewState.letterSpacing,
+        canvasState.connectAnchorY
       );
     }
   }, [
@@ -282,379 +389,258 @@ export default function App() {
     brushSettings.grain,
     canvasState.templateFont,
     canvasState.activeStyle,
+    canvasState.scriptMode,
+    previewState.letterSpacing,
+    canvasState.connectAnchorY,
+    themeHue,
   ]);
 
-  // Clear active canvas on char change
   useEffect(() => {
     const ctx = activeRef.current?.getContext("2d");
     ctx?.clearRect(0, 0, CW, CH);
   }, [canvasState.currentChar]);
 
-  // Redraw preview canvas
-  useEffect(() => {
-    const canvas = previewRef.current;
-    if (!canvas || !previewState.showPreview) return;
-    renderPreview(
-      canvas,
-      previewState.previewText,
-      glyphs[canvasState.activeStyle],
-      previewState.previewSize,
-      previewState.letterSpacing
-    );
-  }, [
-    glyphs,
-    canvasState.activeStyle,
-    previewState.previewText,
-    previewState.previewSize,
-    previewState.letterSpacing,
-    previewState.showPreview,
-  ]);
 
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-x-hidden">
       <Header
-        fontName={canvasState.fontName}
-        onFontNameChange={canvasState.setFontName}
-        drawnCount={drawnCount}
-        showTemplate={canvasState.showTemplate}
-        onShowTemplateChange={canvasState.setShowTemplate}
-        templateFontLabel={canvasState.templateFontLabel}
-        onImportFont={() => fontInputRef.current?.click()}
-        showGuides={canvasState.showGuides}
-        onShowGuidesChange={canvasState.setShowGuides}
-        activeStyle={canvasState.activeStyle}
-        onDownloadFont={handleDownloadFont}
-        onDownloadAllStyles={handleDownloadAllStyles}
-        onLeftPanelToggle={() => layoutState.setLeftOpen((v) => !v)}
-        onRightPanelToggle={() => layoutState.setRightOpen((v) => !v)}
-        fontInputRef={fontInputRef}
+        view={appView}
+        onAbout={() => setAppView("about")}
+        onBack={() => setAppView("studio")}
       />
 
-      <div className="flex flex-1 min-h-0">
-        <LeftPanel
-          isOpen={layoutState.leftOpen}
-          glyphs={glyphs}
-          activeStyle={canvasState.activeStyle}
-          currentChar={canvasState.currentChar}
-          onCharSelect={(char) => {
-            canvasState.setCurrentChar(char);
-            currentPoints.current = [];
-            isDrawing.current = false;
-          }}
-        />
+      {/* Spacer so content clears the fixed header */}
+      <div style={{ height: "var(--header-height, 53px)" }} />
 
-        <main className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-background min-w-0">
-          {/* Drawing area */}
-          <div className="flex-shrink-0 flex flex-col items-center px-4 sm:px-6 pt-4 pb-2 gap-3">
-            {/* Style selector */}
-            <div className="flex flex-wrap items-center gap-1.5 self-stretch justify-center">
-              {FONT_STYLES.map(({ key, label }) => {
-                const count = Object.values(glyphs[key]).filter(
-                  (s) => s.length > 0
-                ).length;
-                const isActive = key === canvasState.activeStyle;
-                const canAutoGenerate =
-                  key !== "regular" && regularDrawnCount > 0 && count === 0;
+      {appView === "about" && <AboutPage onBack={() => setAppView("studio")} />}
 
-                return (
-                  <div
-                    key={key}
-                    className="flex items-center rounded border border-border overflow-hidden"
-                  >
+      {/* Landing content sits above the studio in one scroll */}
+      {appView === "studio" && <LandingPage onEnterStudio={() => {}} hideCta />}
+
+      {/* Studio */}
+      <div className={["flex min-h-screen relative", appView === "about" ? "hidden" : ""].join(" ")}>
+          {/* Floating panel triggers — sit just below the header */}
+          <button
+            onClick={layoutState.toggleLeft}
+            className="btn btn-icon-md btn-ghost fixed left-3 z-40"
+            style={{ top: "calc(var(--header-height, 53px) + 10px)" }}
+            title="Characters"
+            aria-label="Toggle character panel"
+          >
+            <AlignLeft size={15} />
+          </button>
+          <button
+            onClick={layoutState.toggleRight}
+            className="btn btn-icon-md btn-ghost fixed right-3 z-40"
+            style={{ top: "calc(var(--header-height, 53px) + 10px)" }}
+            title="Brush settings"
+            aria-label="Toggle brush settings"
+          >
+            <Settings size={15} />
+          </button>
+
+          {/* Centered floating download buttons */}
+          <div
+            className="fixed left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5"
+            style={{ top: "calc(var(--header-height, 53px) + 10px)" }}
+          >
+            <button
+              onClick={handleDownloadFont}
+              disabled={drawnCount === 0}
+              title={drawnCount === 0 ? `Draw some ${activeStyleLabel} characters first` : `Download ${activeStyleLabel}`}
+              className="btn btn-sm btn-neu-accent gap-1.5"
+            >
+              <Download size={12} />
+              {activeStyleLabel}
+              {drawnCount > 0 && <span className="opacity-60 text-[10px]">{drawnCount}</span>}
+            </button>
+            <button
+              onClick={handleDownloadAllStyles}
+              disabled={totalDrawnCount === 0}
+              title={totalDrawnCount === 0 ? "Draw some characters first" : "Download all drawn styles"}
+              className="btn btn-sm btn-ghost gap-1.5"
+            >
+              All
+              {totalDrawnCount > 0 && <span className="opacity-50 text-[10px]">{totalDrawnCount}</span>}
+            </button>
+          </div>
+
+          {/* Backdrop — closes panels when clicking outside */}
+          {(layoutState.leftOpen || layoutState.rightOpen) && (
+            <div
+              className="fixed inset-0 z-40 bg-black/10"
+              style={{ top: "var(--header-height, 53px)" }}
+              onClick={layoutState.closeAll}
+            />
+          )}
+
+          <LeftPanel
+            isOpen={layoutState.leftOpen}
+            glyphs={glyphs}
+            activeStyle={canvasState.activeStyle}
+            currentChar={canvasState.currentChar}
+            onCharSelect={(char) => {
+              canvasState.setCurrentChar(char);
+              currentPoints.current = [];
+              isDrawing.current = false;
+            }}
+          />
+
+          <main className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-background min-w-0">
+            {/* Drawing area */}
+            <div className="flex-shrink-0 flex flex-col items-center px-4 sm:px-6 pt-4 pb-2 gap-3">
+
+              {/* Style selector */}
+              <div className="flex flex-wrap items-center gap-1.5 self-stretch justify-center">
+                {FONT_STYLES.map(({ key, label }) => {
+                  const count = Object.values(glyphs[key]).filter((s) => s.length > 0).length;
+                  const isActive = key === canvasState.activeStyle;
+
+                  return (
                     <button
+                      key={key}
                       onClick={() => canvasState.setActiveStyle(key)}
-                      className={[
-                        "flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all",
-                        isActive
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-card text-muted-foreground hover:bg-secondary",
-                      ].join(" ")}
+                      className={isActive ? "style-btn-active" : "style-btn"}
                       style={{
-                        fontStyle: key.includes("italic") ? "italic" : "normal",
-                        fontWeight: key.includes("bold") ? 700 : 400,
+                        fontStyle:  key.includes("italic") ? "italic" : "normal",
+                        fontWeight: isActive ? 700 : key.includes("bold") ? 700 : 400,
                       }}
                     >
+                      {isActive && <StyleCircle />}
                       <span>{label}</span>
                       {count > 0 && (
-                        <span
-                          className={[
-                            "text-[10px] rounded px-1",
-                            isActive
-                              ? "bg-white/20"
-                              : "bg-accent/20 text-accent",
-                          ].join(" ")}
-                        >
-                          {count}
-                        </span>
+                        <span className="text-[10px] opacity-50 ml-0.5">{count}</span>
                       )}
                     </button>
-                    {canAutoGenerate && (
-                      <button
-                        onClick={() =>
-                          key === "bold"
-                            ? handleAutoGenerateBold()
-                            : key === "italic"
-                              ? handleAutoGenerateItalic()
-                              : handleAutoGenerateBoldItalic()
-                        }
-                        className="text-[10px] px-1.5 py-1.5 border-l border-border text-accent hover:bg-secondary transition-all"
-                        title={`Auto-generate ${label} from Regular`}
-                      >
-                        auto
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Char nav */}
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => navigateChar(-1)}
-                className="w-8 h-8 flex items-center justify-center rounded border border-border hover:bg-secondary transition-all"
-              >
-                <ChevronLeft size={15} />
-              </button>
-              <div className="text-center w-16">
-                <span
-                  className="text-5xl font-medium leading-none"
-                  style={{ fontFamily: "'Playfair Display', serif" }}
-                >
-                  {canvasState.currentChar}
-                </span>
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  {currentStrokes.length} stroke
-                  {currentStrokes.length !== 1 ? "s" : ""}
-                </p>
+                  );
+                })}
               </div>
-              <button
-                onClick={() => navigateChar(1)}
-                className="w-8 h-8 flex items-center justify-center rounded border border-border hover:bg-secondary transition-all"
-              >
-                <ChevronRight size={15} />
-              </button>
+
+              {/* Char nav */}
+              <div className="flex items-center gap-4">
+                <button onClick={() => navigateChar(-1)} className="btn btn-icon-md btn-ghost">
+                  <ChevronLeft size={15} />
+                </button>
+                <div className="text-center w-16">
+                  <span className="char-display">{canvasState.currentChar}</span>
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {currentStrokes.length} stroke{currentStrokes.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <button onClick={() => navigateChar(1)} className="btn btn-icon-md btn-ghost">
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+
+              {/* Drawing canvas */}
+              <DrawingCanvas
+                committedRef={committedRef}
+                activeRef={activeRef}
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+                showDot={lazyDot.showDot}
+                dotPos={lazyDot.dotPos}
+                dotRadius={dotRadius}
+                cursorStyle={anchorCursor}
+              />
+
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={undoStroke}
+                  disabled={currentStrokes.length === 0}
+                  className="btn btn-sm btn-ghost gap-1.5"
+                >
+                  <Undo2 size={12} /> Undo
+                </button>
+                <button
+                  onClick={clearGlyph}
+                  disabled={currentStrokes.length === 0}
+                  className="btn btn-sm btn-ghost gap-1.5"
+                >
+                  <Trash2 size={12} /> Clear
+                </button>
+              </div>
             </div>
 
-            {/* Drawing canvas */}
-            <DrawingCanvas
-              committedRef={committedRef}
-              activeRef={activeRef}
-              onPointerDown={onPointerDown}
-              onPointerMove={onPointerMove}
-              onPointerUp={onPointerUp}
-              showDot={lazyDot.showDot}
-              dotPos={lazyDot.dotPos}
-              dotRadius={dotRadius}
-            />
+            {/* Preview section */}
+            <div className="flex-shrink-0 w-full max-w-2xl mx-auto px-4 mb-4 space-y-8">
 
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={undoStroke}
-                disabled={currentStrokes.length === 0}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border border-border text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              >
-                <Undo2 size={12} /> Undo
-              </button>
-              <button
-                onClick={clearGlyph}
-                disabled={currentStrokes.length === 0}
-                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded border border-border text-muted-foreground hover:text-foreground hover:bg-secondary disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-              >
-                <Trash2 size={12} /> Clear
-              </button>
-            </div>
-          </div>
-
-          {/* Preview section */}
-          <div className="flex-shrink-0 mx-4 mb-4 rounded border border-border overflow-hidden">
-            {/* Preview header */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-card border-b border-border">
-              <button
-                onClick={() => previewState.setShowPreview((v) => !v)}
-                className="flex items-center gap-2 text-sm font-medium hover:text-accent transition-colors"
-              >
-                <Type size={13} className="text-accent" />
-                Text Preview
-                {previewState.showPreview ? (
-                  <ChevronUp size={13} className="text-muted-foreground" />
-                ) : (
-                  <ChevronDown size={13} className="text-muted-foreground" />
-                )}
-              </button>
-              {previewState.showPreview && (
-                <div className="flex items-center gap-3 flex-wrap justify-end">
-                  {/* Font size */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest hidden sm:inline">
-                      Size
-                    </span>
-                    <button
-                      onClick={() =>
-                        previewState.setPreviewSize((v) => Math.max(16, v - 4))
-                      }
-                      className="w-5 h-5 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground"
-                    >
-                      <Minus size={9} />
-                    </button>
-                    <span
-                      className="text-xs w-8 text-center"
-                      style={{ fontFamily: "'DM Mono', monospace" }}
-                    >
-                      {previewState.previewSize}px
-                    </span>
-                    <button
-                      onClick={() =>
-                        previewState.setPreviewSize((v) => Math.min(96, v + 4))
-                      }
-                      className="w-5 h-5 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground"
-                    >
-                      <Plus size={9} />
-                    </button>
-                  </div>
-
-                  {/* Letter spacing */}
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] text-muted-foreground uppercase tracking-widest hidden sm:inline">
-                      Spacing
-                    </span>
-                    <button
-                      onClick={() =>
-                        previewState.setLetterSpacing((v) =>
-                          Math.max(-100, v - 10)
-                        )
-                      }
-                      className="w-5 h-5 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground"
-                    >
-                      <Minus size={9} />
-                    </button>
+              {/* Editable fields — sit above the card */}
+              <div className="note-inputs" style={{ marginBottom: '120px' }}>
+                <div className="note-input-row">
+                  <div className="note-input-group">
+                    <span className="note-input-label">To</span>
                     <input
-                      type="range"
-                      min={-100}
-                      max={300}
-                      step={10}
-                      value={previewState.letterSpacing}
-                      onChange={(e) =>
-                        previewState.setLetterSpacing(+e.target.value)
-                      }
-                      className="w-16 sm:w-20 h-1 accent-[#c4782a]"
+                      type="text"
+                      value={previewState.toField}
+                      onChange={(e) => previewState.setToField(e.target.value)}
+                      className="note-input-field"
+                      placeholder="Myself"
                     />
-                    <button
-                      onClick={() =>
-                        previewState.setLetterSpacing((v) =>
-                          Math.min(300, v + 10)
-                        )
-                      }
-                      className="w-5 h-5 flex items-center justify-center rounded border border-border hover:bg-secondary text-muted-foreground"
-                    >
-                      <Plus size={9} />
-                    </button>
-                    <span
-                      className="text-xs w-10 text-center"
-                      style={{ fontFamily: "'DM Mono', monospace" }}
-                    >
-                      {previewState.letterSpacing > 0
-                        ? `+${previewState.letterSpacing}`
-                        : previewState.letterSpacing}
-                    </span>
+                  </div>
+                  <div className="note-input-group">
+                    <span className="note-input-label">Date</span>
+                    <input
+                      type="text"
+                      value={previewState.dateField}
+                      onChange={(e) => previewState.setDateField(e.target.value)}
+                      className="note-input-field"
+                      placeholder="Today"
+                    />
                   </div>
                 </div>
+                <div className="note-input-group">
+                  <span className="note-input-label">Message</span>
+                  <textarea
+                    value={previewState.previewText}
+                    onChange={(e) => previewState.setPreviewText(e.target.value)}
+                    rows={2}
+                    className="textarea-field"
+                    placeholder="Write something to preview your font…"
+                  />
+                </div>
+              </div>
+
+              {/* The letter card */}
+              <LoveLetterPreview
+                toName={previewState.toField}
+                dateText={previewState.dateField}
+                bodyText={previewState.previewText}
+                glyphs={glyphs[canvasState.activeStyle]}
+                previewSize={previewState.previewSize}
+                letterSpacing={previewState.letterSpacing}
+                lineHeight={previewState.lineHeight}
+                scriptMode={canvasState.scriptMode}
+              />
+
+              {drawnCount === 0 && (
+                <p className="text-xs text-muted-foreground text-center italic">
+                  Draw some characters above — they will appear in your font.
+                </p>
               )}
             </div>
+          </main>
 
-            {previewState.showPreview && (
-              <div className="bg-card p-4 space-y-3">
-                {/* Phrase presets */}
-                <div className="flex flex-wrap gap-1.5">
-                  {PHRASES.map((p) => (
-                    <button
-                      key={p.label}
-                      onClick={() => previewState.setPreviewText(p.text)}
-                      className={[
-                        "text-xs px-2.5 py-1 rounded transition-all",
-                        previewState.previewText === p.text
-                          ? "bg-accent text-white"
-                          : "bg-secondary text-secondary-foreground hover:bg-muted",
-                      ].join(" ")}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Custom text input */}
-                <textarea
-                  value={previewState.previewText}
-                  onChange={(e) => previewState.setPreviewText(e.target.value)}
-                  rows={2}
-                  className="w-full text-sm bg-background border border-border rounded px-3 py-2 outline-none focus:border-accent resize-none text-foreground placeholder:text-muted-foreground transition-colors"
-                  placeholder="Type anything to preview your font…"
-                  style={{ fontFamily: "'DM Mono', monospace" }}
-                />
-
-                {/* Preview canvas */}
-                <PreviewCanvas previewRef={previewRef} />
-
-                {drawnCount === 0 && (
-                  <p className="text-xs text-muted-foreground text-center italic">
-                    Draw some characters above — they will appear here in your
-                    font.
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </main>
-
-        <RightPanel
-          isOpen={layoutState.rightOpen}
-          brushType={brushSettings.brushType}
-          onBrushTypeChange={brushSettings.setBrushType}
-          brushSize={brushSettings.brushSize}
-          onBrushSizeChange={brushSettings.setBrushSize}
-          onBrushSizeMinus={() =>
-            brushSettings.setBrushSize((v) => Math.max(4, v - 2))
-          }
-          onBrushSizePlus={() =>
-            brushSettings.setBrushSize((v) => Math.min(48, v + 2))
-          }
-          opacity={brushSettings.opacity}
-          onOpacityChange={brushSettings.setOpacity}
-          onOpacityMinus={() =>
-            brushSettings.setOpacity((v) =>
-              Math.max(0.2, +(v - 0.05).toFixed(2))
-            )
-          }
-          onOpacityPlus={() =>
-            brushSettings.setOpacity((v) =>
-              Math.min(1, +(v + 0.05).toFixed(2))
-            )
-          }
-          stabilizer={brushSettings.stabilizer}
-          onStabilizerChange={brushSettings.setStabilizer}
-          onStabilizerMinus={() =>
-            brushSettings.setStabilizer((v) => Math.max(0, v - 1))
-          }
-          onStabilizerPlus={() =>
-            brushSettings.setStabilizer((v) => Math.min(30, v + 1))
-          }
-          smoothing={brushSettings.smoothing}
-          onSmoothingChange={brushSettings.setSmoothing}
-          streamline={brushSettings.streamline}
-          onStreamlineChange={brushSettings.setStreamline}
-          thinning={brushSettings.thinning}
-          onThinningChange={brushSettings.setThinning}
-          taper={brushSettings.taper}
-          onTaperChange={brushSettings.setTaper}
-          grain={brushSettings.grain}
-          onGrainChange={brushSettings.setGrain}
-          glyphs={glyphs}
-          activeStyle={canvasState.activeStyle}
-        />
-      </div>
+          <RightPanel
+            isOpen={layoutState.rightOpen}
+            brushSettings={brushSettings.settings}
+            brushActions={brushSettings.actions}
+            scriptMode={canvasState.scriptMode}
+            onScriptModeChange={canvasState.setScriptMode}
+            previewSize={previewState.previewSize}
+            onPreviewSizeChange={previewState.setPreviewSize}
+            letterSpacing={previewState.letterSpacing}
+            onLetterSpacingChange={previewState.setLetterSpacing}
+            lineHeight={previewState.lineHeight}
+            onLineHeightChange={previewState.setLineHeight}
+            themeHue={themeHue}
+            onThemeHueChange={setThemeHue}
+          />
+        </div>
 
       {/* Hidden file input for font upload */}
       <input
@@ -664,6 +650,20 @@ export default function App() {
         className="hidden"
         onChange={handleFontUpload}
       />
+
+      <DownloadDialog
+        open={downloadDialogOpen}
+        onOpenChange={setDownloadDialogOpen}
+        initialFontName={canvasState.fontName}
+        mode={downloadDialogMode}
+        styleLabel={
+          FONT_STYLES.find((s) => s.key === canvasState.activeStyle)?.label ?? ""
+        }
+        onDownload={handleConfirmDownload}
+        isDownloading={isDownloading}
+      />
+
+      <Toaster richColors position="bottom-right" />
     </div>
   );
 }

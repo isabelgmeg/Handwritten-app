@@ -10,6 +10,7 @@ interface DrawingCanvasProps {
   showDot: boolean;
   dotPos: { x: number; y: number };
   dotRadius: number;
+  cursorStyle?: string;
 }
 
 export function DrawingCanvas({
@@ -21,40 +22,24 @@ export function DrawingCanvas({
   showDot,
   dotPos,
   dotRadius,
+  cursorStyle = "crosshair",
 }: DrawingCanvasProps) {
   return (
     <div
-      className="relative rounded overflow-hidden w-full mx-auto shadow-md"
-      style={{
-        maxWidth: CW,
-        aspectRatio: `${CW} / ${CH}`,
-        border: "1px solid rgba(28,20,9,0.14)",
-      }}
+      className="canvas-wrapper"
+      style={{ maxWidth: CW, aspectRatio: `${CW} / ${CH}` }}
     >
       <canvas
         ref={committedRef}
         width={CW}
         height={CH}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          pointerEvents: "none",
-        }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
       />
       <canvas
         ref={activeRef}
         width={CW}
         height={CH}
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          touchAction: "none",
-          cursor: "crosshair",
-        }}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", touchAction: "none", cursor: cursorStyle }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -62,13 +47,12 @@ export function DrawingCanvas({
       />
       {showDot && dotRadius > 0 && (
         <div
-          className="pointer-events-none absolute rounded-full border border-accent/60"
+          className="lazy-dot"
           style={{
-            width: dotRadius * 2,
+            width:  dotRadius * 2,
             height: dotRadius * 2,
-            left: dotPos.x - dotRadius,
-            top: dotPos.y - dotRadius,
-            backgroundColor: "rgba(196,120,42,0.05)",
+            left:   dotPos.x - dotRadius,
+            top:    dotPos.y - dotRadius,
           }}
         />
       )}

@@ -1,11 +1,23 @@
+# Handwritten Font Creator
 
-  # Handwritten Font Creator
+Turn your handwriting into a downloadable font — draw characters on a digital canvas and export a `.woff` file ready to use anywhere.
 
-  This is a code bundle for Handwritten Font Creator. The original project is available at https://www.figma.com/design/oTJrsuXyNByfHOOY1OgtN8/Handwritten-Font-Creator.
+## Features
 
-  ## Running the code
+- Draw each character on a pressure-sensitive canvas
+- Live preview with custom text
+- Multiple brush styles and stroke widths
+- Export as `.woff` font file
 
-  Run `npm i` to install the dependencies.
+## Development
 
-  Run `npm run dev` to start the development server.
-  
+```bash
+npm install
+npm run dev
+```
+
+Build for production:
+
+```bash
+npm run build
+```

@@ -18,36 +18,29 @@ export function LeftPanel({
 }: LeftPanelProps) {
   return (
     <aside
-      className="border-r border-border bg-card flex-shrink-0 overflow-hidden"
-      style={{ width: isOpen ? 208 : 0, transition: "width 200ms ease" }}
+      className="panel-aside border-r fixed left-0 bottom-0 z-50"
+      style={{
+        top: "var(--header-height, 53px)",
+        width: isOpen ? 208 : 0,
+        boxShadow: isOpen ? "2px 0 12px rgba(0,0,0,0.08)" : "none",
+      }}
     >
-      <div className="w-52 h-full overflow-y-auto py-4">
+      <div className="panel-scroll w-52 py-4">
         {CHAR_GROUPS.map((group) => (
           <div key={group.label} className="mb-5 px-3">
-            <div className="text-[10px] font-medium uppercase tracking-widest text-muted-foreground mb-2 px-1">
-              {group.label}
-            </div>
+            <div className="label-caps mb-2 px-1">{group.label}</div>
             <div className="flex flex-wrap gap-1">
               {group.chars.map((char) => {
-                const drawn =
-                  (glyphs[activeStyle][char]?.length ?? 0) > 0;
+                const drawn = (glyphs[activeStyle][char]?.length ?? 0) > 0;
                 const active = char === currentChar;
                 return (
                   <button
                     key={char}
                     onClick={() => onCharSelect(char)}
-                    className={[
-                      "relative w-8 h-8 text-sm rounded font-medium transition-all",
-                      active
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary text-secondary-foreground hover:bg-muted",
-                    ].join(" ")}
-                    style={{ fontFamily: "'DM Mono', monospace" }}
+                    className={["char-btn", active ? "char-btn-active" : ""].join(" ")}
                   >
                     {char}
-                    {drawn && !active && (
-                      <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-accent" />
-                    )}
+                    {drawn && !active && <span className="char-btn-dot" />}
                   </button>
                 );
               })}

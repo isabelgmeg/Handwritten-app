@@ -16,6 +16,8 @@ export type BrushType =
 
 export type FontStyle = "regular" | "bold" | "italic" | "bold-italic";
 
+export type ScriptMode = "normal" | "connected";
+
 export interface PFOptions {
   size: number;
   thinning: number;
@@ -59,7 +61,7 @@ export interface TestPhrase {
 
 export interface BrushSettings {
   brushType: BrushType;
-  size: number;
+  brushSize: number;
   thinning: number;
   smoothing: number;
   streamline: number;
@@ -67,6 +69,18 @@ export interface BrushSettings {
   taper: number;
   opacity: number;
   grain: number;
+}
+
+export interface BrushSettingsActions {
+  setBrushType: (v: BrushType) => void;
+  setBrushSize: (v: number) => void;
+  setOpacity: (v: number) => void;
+  setStabilizer: (v: number) => void;
+  setSmoothing: (v: number) => void;
+  setStreamline: (v: number) => void;
+  setThinning: (v: number) => void;
+  setTaper: (v: number) => void;
+  setGrain: (v: number) => void;
 }
 
 export interface CanvasState {
@@ -83,7 +97,6 @@ export interface PreviewState {
   previewText: string;
   previewSize: number;
   letterSpacing: number;
-  showPreview: boolean;
 }
 
 export interface LayoutState {
