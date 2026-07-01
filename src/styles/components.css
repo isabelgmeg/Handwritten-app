@@ -572,6 +572,7 @@
   .textarea-field {
     width: 100%;
     font-size: 0.875rem;
+    font-family: var(--font-display);
     background-color: var(--background);
     color: var(--accent);
     opacity: 1;
@@ -728,7 +729,6 @@
     width: 100%;
     font-size: 0.875rem;
     font-family: var(--font-display);
-    font-style: italic;
     color: var(--accent);
     background-color: var(--background);
     border: none;
@@ -738,7 +738,7 @@
     box-shadow: var(--shadow-neu-inset-sm);
     transition: box-shadow var(--transition-fast);
 
-    &::placeholder { color: var(--color-text-ghost); font-style: italic; }
+    &::placeholder { color: var(--color-text-ghost); }
 
     &:focus {
       box-shadow:
@@ -833,7 +833,6 @@
 
   .love-letter-field-value {
     font-family: var(--font-display);
-    font-style: italic;
     font-size: calc(0.9375rem * var(--letter-scale, 1));
   }
 
