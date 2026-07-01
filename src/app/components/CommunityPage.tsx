@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion } from "motion/react";
 import { PreviewCanvas } from "./Canvas/PreviewCanvas";
 import { fetchNotes } from "@/services/notesService";
 import type { CommunityNote, NoteType } from "@/services/notesService";
@@ -68,7 +69,7 @@ function formatDate(iso: string): string {
 
 const COMMUNITY_PREVIEW_SIZE = 28;
 
-function NoteCard({ note }: { note: CommunityNote }) {
+function NoteCard({ note, index }: { note: CommunityNote; index: number }) {
   const rotation   = seededValue(note.id, 72, 10);                   // −3.6 … +3.6 deg card tilt
 
   // Tape: seeded left (−50°) or right (+50°) base, ±25° variation → organic scatter
@@ -86,14 +87,18 @@ function NoteCard({ note }: { note: CommunityNote }) {
   const disableMultiply = bgIsDark || hasCustomInk;
 
   return (
-    <article
+    <motion.article
       className="community-note-card"
       aria-label={note.message}
       style={{
         backgroundColor: resolvedBg,
-        transform: `rotate(${rotation}deg)`,
+        rotate: rotation,
         ...noteTypeStyle(note.note_type ?? "plain"),
       }}
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut", delay: index * 0.07 }}
+      whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.2, ease: "easeOut" } }}
     >
       {/* Paper grain */}
       <div className="community-note-grain" aria-hidden />
@@ -124,7 +129,7 @@ function NoteCard({ note }: { note: CommunityNote }) {
         <span className="community-note-author">{note.author ?? "Anonymous"}</span>
         <span className="community-note-date">{formatDate(note.created_at)}</span>
       </div>
-    </article>
+    </motion.article>
   );
 }
 
@@ -180,7 +185,12 @@ export function CommunityPage({ onAddNote, refreshKey }: CommunityPageProps) {
       <div className="community-header" style={{ isolation: "isolate", backgroundColor: "#F5F0E4" }}>
 
         {/* Grid overlay: large dark gray copy + red script title — same pattern as landing page */}
-        <div style={{ display: "grid", placeItems: "center", marginBottom: "1.75rem" }}>
+        <motion.div
+          style={{ display: "grid", placeItems: "center", marginBottom: "1.75rem" }}
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+        >
           <p
             className="mix-blend-multiply"
             style={{
@@ -202,7 +212,7 @@ export function CommunityPage({ onAddNote, refreshKey }: CommunityPageProps) {
           >
             Notes from Love Studio
           </h1>
-        </div>
+        </motion.div>
 
         {onAddNote && (
           <button
@@ -236,7 +246,7 @@ export function CommunityPage({ onAddNote, refreshKey }: CommunityPageProps) {
                   </p>
                 </div>
               )
-              : notes.map((note) => <NoteCard key={note.id} note={note} />)
+              : notes.map((note, i) => <NoteCard key={note.id} note={note} index={i} />)
           }
         </div>
       )}
