@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import getStroke from "perfect-freehand";
 import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Pencil, Hand } from "lucide-react";
 import { toast } from "sonner";
@@ -108,8 +109,12 @@ export default function App() {
     document.documentElement.style.setProperty("--theme-hue", String(themeHue));
   }, [themeHue]);
 
-  // App view
-  const [appView, setAppView] = useState<"studio" | "about" | "community">("studio");
+  // Routing
+  const navigate = useNavigate();
+  const location = useLocation();
+  const appView = location.pathname === "/community" ? "community"
+    : location.pathname === "/about" ? "about"
+    : "studio";
 
   // Draw mode — on touch devices, off by default so scroll works
   const [drawMode, setDrawMode] = useState(false);
@@ -121,6 +126,7 @@ export default function App() {
 
   // Share note dialog state
   const [shareNoteOpen, setShareNoteOpen] = useState(false);
+  const [communityRefreshKey, setCommunityRefreshKey] = useState(0);
 
   const currentStrokes = glyphs[canvasState.activeStyle][canvasState.currentChar] ?? [];
   const accentBaseChar = ACCENT_BASE_MAP[canvasState.currentChar];
@@ -374,6 +380,7 @@ export default function App() {
   useEffect(() => {
     const c = committedRef.current;
     const isItalic = canvasState.activeStyle === "italic" || canvasState.activeStyle === "bold-italic";
+    const isBold   = canvasState.activeStyle === "bold"   || canvasState.activeStyle === "bold-italic";
     const grainCanvas = getOrCreateGrainCanvas();
     // Refresh theme once per redraw cycle (not on every pointer event)
     canvasThemeRef.current = getCanvasTheme();
@@ -396,6 +403,7 @@ export default function App() {
         previewState.letterSpacing,
         canvasState.connectAnchorY,
         baseStrokes.length ? baseStrokes : undefined,
+        isBold,
       );
     }
   }, [
@@ -426,9 +434,9 @@ export default function App() {
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-x-hidden">
       <Header
         view={appView}
-        onAbout={() => setAppView("about")}
-        onBack={() => setAppView("studio")}
-        onCommunity={() => setAppView("community")}
+        onAbout={() => navigate("/about")}
+        onBack={() => navigate("/")}
+        onCommunity={() => navigate("/community")}
         onDownload={handleDownloadFont}
         onDownloadAll={handleDownloadAllStyles}
         drawnCount={drawnCount}
@@ -439,14 +447,23 @@ export default function App() {
       {/* Spacer so content clears the fixed header */}
       <div style={{ height: "var(--header-height, 53px)" }} />
 
-      {appView === "about" && <AboutPage />}
+      <Routes>
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/community" element={
+          <CommunityPage
+            onAddNote={() => setShareNoteOpen(true)}
+            refreshKey={communityRefreshKey}
+          />
+        } />
+        <Route path="/" element={
+          <>
+            {/* Landing content sits above the studio in one scroll */}
+            <LandingPage onEnterStudio={() => {}} hideCta />
+          </>
+        } />
+      </Routes>
 
-      {appView === "community" && <CommunityPage />}
-
-      {/* Landing content sits above the studio in one scroll */}
-      {appView === "studio" && <LandingPage onEnterStudio={() => {}} hideCta />}
-
-      {/* Studio */}
+      {/* Studio — always mounted so drawing state is preserved across nav */}
       <div className={["flex min-h-screen relative", appView !== "studio" ? "hidden" : ""].join(" ")}>
           {/* Floating panel triggers — sit just below the header */}
           <button
@@ -688,7 +705,7 @@ export default function App() {
         lineHeight={previewState.lineHeight}
         scriptMode={canvasState.scriptMode}
         defaultMessage={previewState.previewText}
-        onShared={() => setAppView("community")}
+        onShared={() => { setCommunityRefreshKey(k => k + 1); navigate("/community"); }}
       />
 
       <DownloadDialog

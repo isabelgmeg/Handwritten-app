@@ -25,7 +25,14 @@ export function Header({
   activeStyleLabel = "",
 }: HeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-card px-5 py-3 flex items-center justify-between gap-4">
+    <header
+      className="fixed top-0 left-0 right-0 z-50 border-b px-5 py-3 flex items-center justify-between gap-4"
+      style={
+        view === "community"
+          ? { backgroundColor: "#F5F0E4", borderColor: "oklch(0 0 0 / 0.07)" }
+          : { backgroundColor: "var(--card)", borderColor: "var(--border)" }
+      }
+    >
       <div className="flex items-center gap-3">
         <LogoMark className="text-foreground h-[14px] w-auto flex-shrink-0" />
         <span className="text-border select-none text-lg opacity-60 hidden sm:inline">|</span>
@@ -64,7 +71,14 @@ export function Header({
         )}
 
         {view === "about" || view === "community" ? (
-          <button onClick={onBack} className="btn btn-sm btn-ghost">
+          <button
+            onClick={onBack}
+            className="btn btn-sm btn-ghost"
+            style={view === "community"
+              ? { backgroundColor: "#F5F0E4", boxShadow: "3px 3px 6px #d7d1c4, -3px -3px 6px #ffffff" }
+              : undefined
+            }
+          >
             ← studio
           </button>
         ) : (
