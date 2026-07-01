@@ -31,6 +31,7 @@ export function renderPreview(
   theme: CanvasTheme,
   scriptMode: ScriptMode = "normal",
   lineHeight: number = 1.15,
+  paddingX: number = PREVIEW_PADDING_X,
 ): void {
   const ctx = canvas.getContext("2d")!;
   const scale = fontSizePx / CAP_TO_BASE;
@@ -40,8 +41,12 @@ export function renderPreview(
   const overlap = scriptMode === "connected" ? CONNECT_OVERLAP : 0;
   const advanceW = (GLYPH_ADVANCE_WIDTH_BASE + letterSpacing - overlap) * fuToPx;
   const spaceW = SPACE_WIDTH * fuToPx;
-  const lineH = CANVAS_HEIGHT * scale * lineHeight;
-  const padX = PREVIEW_PADDING_X;
+  // lineH: baseline-to-baseline distance — fontSizePx IS the cap height (one "em"),
+  // so lineHeight multiplies that directly, matching CSS line-height semantics.
+  // (Previous bug: used CANVAS_HEIGHT * scale ≈ 1.82 × fontSizePx, inflating every
+  //  lineHeight value by ~1.82 and producing ~2× spacing at the default 1.15 setting.)
+  const lineH = fontSizePx * lineHeight;
+  const padX = paddingX;
   const padTop = PREVIEW_PADDING_TOP;
 
   // Measure total height (word wrap)
@@ -63,7 +68,8 @@ export function renderPreview(
     x += w;
   }
 
-  const totalH = padTop + lines * lineH + CANVAS_HEIGHT * scale * 0.3 + padTop;
+  // Total height: (lines-1) baseline-to-baseline gaps + one full glyph body (cap→descender) + padding
+  const totalH = padTop + (lines - 1) * lineH + CANVAS_HEIGHT * scale + padTop;
   canvas.height = Math.max(80, totalH);
 
   // Background — transparent so wrapper bg shows through
@@ -107,22 +113,13 @@ export function renderPreview(
     const strokes = glyphs[ch];
 
     if (!strokes || strokes.length === 0) {
-      // Placeholder
+      // Fallback: render with the handwriting font instead of the template outline
       ctx.save();
-      ctx.strokeStyle = theme.placeholderLine;
-      ctx.lineWidth = 0.75;
-      ctx.setLineDash([2, 3]);
-      ctx.strokeRect(
-        x + 2,
-        baselineY - CAP_TO_BASE * scale,
-        advanceW - 4,
-        CAP_TO_BASE * scale,
-      );
-      ctx.font = `${fontSizePx * 0.7}px 'Amiri',serif`;
+      ctx.font = `${fontSizePx}px 'MyHandwriting','Amiri',serif`;
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";
-      ctx.fillStyle = theme.placeholderFill;
-      ctx.fillText(ch, x + 4, baselineY);
+      ctx.fillStyle = theme.previewInk;
+      ctx.fillText(ch, x, baselineY);
       ctx.restore();
     } else {
       ctx.save();

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import getStroke from "perfect-freehand";
 import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Pencil, Hand } from "lucide-react";
 import { toast } from "sonner";
@@ -51,6 +52,8 @@ import { RightPanel } from "./components/Panels/RightPanel";
 import { DrawingCanvas } from "./components/Canvas/DrawingCanvas";
 import { LoveLetterPreview } from "./components/Canvas/LoveLetterPreview";
 import { DownloadDialog } from "./components/common/DownloadDialog";
+import { ShareNoteDialog } from "./components/common/ShareNoteDialog";
+import { CommunityPage } from "./components/CommunityPage";
 import { Toaster } from "./components/ui/sonner";
 
 // ── Initial State ────────────────────────────────────────────────────────────
@@ -106,8 +109,12 @@ export default function App() {
     document.documentElement.style.setProperty("--theme-hue", String(themeHue));
   }, [themeHue]);
 
-  // App view
-  const [appView, setAppView] = useState<"studio" | "about">("studio");
+  // Routing
+  const navigate = useNavigate();
+  const location = useLocation();
+  const appView = location.pathname === "/community" ? "community"
+    : location.pathname === "/about" ? "about"
+    : "studio";
 
   // Draw mode — on touch devices, off by default so scroll works
   const [drawMode, setDrawMode] = useState(false);
@@ -116,6 +123,10 @@ export default function App() {
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [downloadDialogMode, setDownloadDialogMode] = useState<"single" | "all">("single");
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Share note dialog state
+  const [shareNoteOpen, setShareNoteOpen] = useState(false);
+  const [communityRefreshKey, setCommunityRefreshKey] = useState(0);
 
   const currentStrokes = glyphs[canvasState.activeStyle][canvasState.currentChar] ?? [];
   const accentBaseChar = ACCENT_BASE_MAP[canvasState.currentChar];
@@ -337,6 +348,7 @@ export default function App() {
           toast.error(result.error ?? "Download failed");
         } else {
           setDownloadDialogOpen(false);
+          setShareNoteOpen(true);
           canvasState.setFontName(name);
           if (result.warnings.length > 0) {
             toast.warning("Font downloaded with warnings", {
@@ -368,6 +380,7 @@ export default function App() {
   useEffect(() => {
     const c = committedRef.current;
     const isItalic = canvasState.activeStyle === "italic" || canvasState.activeStyle === "bold-italic";
+    const isBold   = canvasState.activeStyle === "bold"   || canvasState.activeStyle === "bold-italic";
     const grainCanvas = getOrCreateGrainCanvas();
     // Refresh theme once per redraw cycle (not on every pointer event)
     canvasThemeRef.current = getCanvasTheme();
@@ -390,6 +403,7 @@ export default function App() {
         previewState.letterSpacing,
         canvasState.connectAnchorY,
         baseStrokes.length ? baseStrokes : undefined,
+        isBold,
       );
     }
   }, [
@@ -420,8 +434,9 @@ export default function App() {
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-x-hidden">
       <Header
         view={appView}
-        onAbout={() => setAppView("about")}
-        onBack={() => setAppView("studio")}
+        onAbout={() => navigate("/about")}
+        onBack={() => navigate("/")}
+        onCommunity={() => navigate("/community")}
         onDownload={handleDownloadFont}
         onDownloadAll={handleDownloadAllStyles}
         drawnCount={drawnCount}
@@ -432,13 +447,24 @@ export default function App() {
       {/* Spacer so content clears the fixed header */}
       <div style={{ height: "var(--header-height, 53px)" }} />
 
-      {appView === "about" && <AboutPage />}
+      <Routes>
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/community" element={
+          <CommunityPage
+            onAddNote={() => setShareNoteOpen(true)}
+            refreshKey={communityRefreshKey}
+          />
+        } />
+        <Route path="/" element={
+          <>
+            {/* Landing content sits above the studio in one scroll */}
+            <LandingPage onEnterStudio={() => {}} hideCta />
+          </>
+        } />
+      </Routes>
 
-      {/* Landing content sits above the studio in one scroll */}
-      {appView === "studio" && <LandingPage onEnterStudio={() => {}} hideCta />}
-
-      {/* Studio */}
-      <div className={["flex min-h-screen relative", appView === "about" ? "hidden" : ""].join(" ")}>
+      {/* Studio — always mounted so drawing state is preserved across nav */}
+      <div className={["flex min-h-screen relative", appView !== "studio" ? "hidden" : ""].join(" ")}>
           {/* Floating panel triggers — sit just below the header */}
           <button
             onClick={layoutState.toggleLeft}
@@ -668,6 +694,18 @@ export default function App() {
         accept=".otf,.ttf,.woff,.woff2"
         className="hidden"
         onChange={handleFontUpload}
+      />
+
+      <ShareNoteDialog
+        open={shareNoteOpen}
+        onOpenChange={setShareNoteOpen}
+        glyphs={glyphs[canvasState.activeStyle]}
+        previewSize={previewState.previewSize}
+        letterSpacing={previewState.letterSpacing}
+        lineHeight={previewState.lineHeight}
+        scriptMode={canvasState.scriptMode}
+        defaultMessage={previewState.previewText}
+        onShared={() => { setCommunityRefreshKey(k => k + 1); navigate("/community"); }}
       />
 
       <DownloadDialog

@@ -25,7 +25,8 @@
     /* Paths */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "react-router-dom": ["./node_modules/react-router-dom/dist/index.d.ts"]
     }
   },
   "include": ["src"]

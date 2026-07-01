@@ -2,9 +2,10 @@ import { Download } from "lucide-react";
 import { LogoMark } from "../common/LogoMark";
 
 interface HeaderProps {
-  view: "landing" | "studio" | "about";
+  view: "landing" | "studio" | "about" | "community";
   onAbout: () => void;
   onBack?: () => void;
+  onCommunity?: () => void;
   onDownload?: () => void;
   onDownloadAll?: () => void;
   drawnCount?: number;
@@ -16,6 +17,7 @@ export function Header({
   view,
   onAbout,
   onBack,
+  onCommunity,
   onDownload,
   onDownloadAll,
   drawnCount = 0,
@@ -23,7 +25,14 @@ export function Header({
   activeStyleLabel = "",
 }: HeaderProps) {
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-card px-5 py-3 flex items-center justify-between gap-4">
+    <header
+      className="fixed top-0 left-0 right-0 z-50 border-b px-5 py-3 flex items-center justify-between gap-4"
+      style={
+        view === "community"
+          ? { backgroundColor: "#F5F0E4", borderColor: "oklch(0 0 0 / 0.07)" }
+          : { backgroundColor: "var(--card)", borderColor: "var(--border)" }
+      }
+    >
       <div className="flex items-center gap-3">
         <LogoMark className="text-foreground h-[14px] w-auto flex-shrink-0" />
         <span className="text-border select-none text-lg opacity-60 hidden sm:inline">|</span>
@@ -61,18 +70,34 @@ export function Header({
           </>
         )}
 
-        {view === "about" ? (
-          <button onClick={onBack} className="btn btn-sm btn-ghost">
+        {view === "about" || view === "community" ? (
+          <button
+            onClick={onBack}
+            className="btn btn-sm btn-ghost"
+            style={view === "community"
+              ? { backgroundColor: "#F5F0E4", boxShadow: "3px 3px 6px #d7d1c4, -3px -3px 6px #ffffff" }
+              : undefined
+            }
+          >
             ← studio
           </button>
         ) : (
-          <button
-            onClick={onAbout}
-            className="btn btn-sm btn-ghost"
-            style={{ fontFamily: "var(--font-script)", fontSize: "1rem" }}
-          >
-            about
-          </button>
+          <>
+            <button
+              onClick={onCommunity}
+              className="btn btn-sm btn-ghost"
+              style={{ fontFamily: "var(--font-script)", fontSize: "1rem" }}
+            >
+              community
+            </button>
+            <button
+              onClick={onAbout}
+              className="btn btn-sm btn-ghost"
+              style={{ fontFamily: "var(--font-script)", fontSize: "1rem" }}
+            >
+              about
+            </button>
+          </>
         )}
       </div>
     </header>
