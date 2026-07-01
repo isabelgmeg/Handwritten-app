@@ -2,9 +2,10 @@ import { Download } from "lucide-react";
 import { LogoMark } from "../common/LogoMark";
 
 interface HeaderProps {
-  view: "landing" | "studio" | "about";
+  view: "landing" | "studio" | "about" | "community";
   onAbout: () => void;
   onBack?: () => void;
+  onCommunity?: () => void;
   onDownload?: () => void;
   onDownloadAll?: () => void;
   drawnCount?: number;
@@ -16,6 +17,7 @@ export function Header({
   view,
   onAbout,
   onBack,
+  onCommunity,
   onDownload,
   onDownloadAll,
   drawnCount = 0,
@@ -61,18 +63,27 @@ export function Header({
           </>
         )}
 
-        {view === "about" ? (
+        {view === "about" || view === "community" ? (
           <button onClick={onBack} className="btn btn-sm btn-ghost">
             ← studio
           </button>
         ) : (
-          <button
-            onClick={onAbout}
-            className="btn btn-sm btn-ghost"
-            style={{ fontFamily: "var(--font-script)", fontSize: "1rem" }}
-          >
-            about
-          </button>
+          <>
+            <button
+              onClick={onCommunity}
+              className="btn btn-sm btn-ghost"
+              style={{ fontFamily: "var(--font-script)", fontSize: "1rem" }}
+            >
+              community
+            </button>
+            <button
+              onClick={onAbout}
+              className="btn btn-sm btn-ghost"
+              style={{ fontFamily: "var(--font-script)", fontSize: "1rem" }}
+            >
+              about
+            </button>
+          </>
         )}
       </div>
     </header>

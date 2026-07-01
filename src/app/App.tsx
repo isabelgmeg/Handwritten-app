@@ -51,6 +51,8 @@ import { RightPanel } from "./components/Panels/RightPanel";
 import { DrawingCanvas } from "./components/Canvas/DrawingCanvas";
 import { LoveLetterPreview } from "./components/Canvas/LoveLetterPreview";
 import { DownloadDialog } from "./components/common/DownloadDialog";
+import { ShareNoteDialog } from "./components/common/ShareNoteDialog";
+import { CommunityPage } from "./components/CommunityPage";
 import { Toaster } from "./components/ui/sonner";
 
 // ── Initial State ────────────────────────────────────────────────────────────
@@ -107,7 +109,7 @@ export default function App() {
   }, [themeHue]);
 
   // App view
-  const [appView, setAppView] = useState<"studio" | "about">("studio");
+  const [appView, setAppView] = useState<"studio" | "about" | "community">("studio");
 
   // Draw mode — on touch devices, off by default so scroll works
   const [drawMode, setDrawMode] = useState(false);
@@ -116,6 +118,9 @@ export default function App() {
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [downloadDialogMode, setDownloadDialogMode] = useState<"single" | "all">("single");
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // Share note dialog state
+  const [shareNoteOpen, setShareNoteOpen] = useState(false);
 
   const currentStrokes = glyphs[canvasState.activeStyle][canvasState.currentChar] ?? [];
   const accentBaseChar = ACCENT_BASE_MAP[canvasState.currentChar];
@@ -337,6 +342,7 @@ export default function App() {
           toast.error(result.error ?? "Download failed");
         } else {
           setDownloadDialogOpen(false);
+          setShareNoteOpen(true);
           canvasState.setFontName(name);
           if (result.warnings.length > 0) {
             toast.warning("Font downloaded with warnings", {
@@ -422,6 +428,7 @@ export default function App() {
         view={appView}
         onAbout={() => setAppView("about")}
         onBack={() => setAppView("studio")}
+        onCommunity={() => setAppView("community")}
         onDownload={handleDownloadFont}
         onDownloadAll={handleDownloadAllStyles}
         drawnCount={drawnCount}
@@ -434,11 +441,13 @@ export default function App() {
 
       {appView === "about" && <AboutPage />}
 
+      {appView === "community" && <CommunityPage />}
+
       {/* Landing content sits above the studio in one scroll */}
       {appView === "studio" && <LandingPage onEnterStudio={() => {}} hideCta />}
 
       {/* Studio */}
-      <div className={["flex min-h-screen relative", appView === "about" ? "hidden" : ""].join(" ")}>
+      <div className={["flex min-h-screen relative", appView !== "studio" ? "hidden" : ""].join(" ")}>
           {/* Floating panel triggers — sit just below the header */}
           <button
             onClick={layoutState.toggleLeft}
@@ -668,6 +677,18 @@ export default function App() {
         accept=".otf,.ttf,.woff,.woff2"
         className="hidden"
         onChange={handleFontUpload}
+      />
+
+      <ShareNoteDialog
+        open={shareNoteOpen}
+        onOpenChange={setShareNoteOpen}
+        glyphs={glyphs[canvasState.activeStyle]}
+        previewSize={previewState.previewSize}
+        letterSpacing={previewState.letterSpacing}
+        lineHeight={previewState.lineHeight}
+        scriptMode={canvasState.scriptMode}
+        defaultMessage={previewState.previewText}
+        onShared={() => setAppView("community")}
       />
 
       <DownloadDialog
