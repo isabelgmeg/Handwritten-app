@@ -1,6 +1,6 @@
 {
   "buildCommand": "vite build",
-  "installCommand": "npm ci",
+  "installCommand": "npm install",
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]
