@@ -360,6 +360,35 @@ export function drawStroke(
 }
 
 /**
+ * Render base-character strokes as a semi-transparent ghost layer.
+ * Uses an offscreen canvas so each stroke's own opacity settings are respected
+ * before the whole layer is composited at a reduced alpha.
+ */
+export function drawGhostStrokes(
+  ctx: CanvasRenderingContext2D,
+  baseStrokes: Stroke[],
+  grainCanvas: HTMLCanvasElement,
+  grain: number,
+  theme: CanvasTheme,
+): void {
+  if (!baseStrokes.length) return;
+
+  const offscreen = document.createElement("canvas");
+  offscreen.width = CANVAS_WIDTH;
+  offscreen.height = CANVAS_HEIGHT;
+  const offCtx = offscreen.getContext("2d")!;
+
+  for (const s of baseStrokes) {
+    drawStroke(offCtx, s, grainCanvas, grain, theme);
+  }
+
+  ctx.save();
+  ctx.globalAlpha = 0.18;
+  ctx.drawImage(offscreen, 0, 0);
+  ctx.restore();
+}
+
+/**
  * Full canvas redraw with all elements
  */
 export function fullRedraw(
@@ -376,6 +405,7 @@ export function fullRedraw(
   scriptMode: ScriptMode = "normal",
   letterSpacing = 0,
   anchorY: number = BASELINE_Y,
+  baseStrokes?: Stroke[],
 ): void {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
@@ -383,6 +413,8 @@ export function fullRedraw(
   if (showGuides) drawGuides(ctx, theme);
   drawConnectionGuides(ctx, letterSpacing, scriptMode, anchorY, theme);
   if (showTemplate && char) drawTemplate(ctx, char, theme, templateFont, isItalic);
+
+  if (baseStrokes?.length) drawGhostStrokes(ctx, baseStrokes, grainCanvas, grain, theme);
 
   for (const s of strokes) {
     drawStroke(ctx, s, grainCanvas, grain, theme);

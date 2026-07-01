@@ -19,10 +19,19 @@ export const CHAR_GROUPS: CharGroup[] = [
   { label: "Accented", chars: "áéíóúüñÁÉÍÓÚÜÑ".split("") },
   { label: "Numbers", chars: "0123456789".split("") },
   { label: "Symbols", chars: ".,!?¡¿:;'\"-–—…()[]/@#€&*+=«»°×".split("") },
+  { label: "Ligatures", chars: ["fi", "fl", "ff", "ffi", "ffl", "ll", "rr", "ch"] },
 ];
 
 // All characters flattened for navigation
 export const ALL_CHARS = CHAR_GROUPS.flatMap((g) => g.chars);
+
+// Maps each accented character to the base character it derives from.
+// Used to pre-fill the canvas with the base glyph as a non-editable ghost layer,
+// and to composite base + accent strokes at font export time.
+export const ACCENT_BASE_MAP: Record<string, string> = {
+  á: "a", é: "e", í: "i", ó: "o", ú: "u", ü: "u", ñ: "n",
+  Á: "A", É: "E", Í: "I", Ó: "O", Ú: "U", Ü: "U", Ñ: "N",
+};
 
 // Test phrases for preview
 export const PHRASES: TestPhrase[] = [

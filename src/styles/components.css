@@ -504,6 +504,15 @@
     }
   }
 
+  /* Wide variant for multi-character entries (ligatures) */
+  .char-btn--wide {
+    width: auto;
+    min-width: 2rem;
+    padding-inline: 0.3rem;
+    font-size: 0.75rem;
+    letter-spacing: -0.02em;
+  }
+
   /* Drawn indicator dot — shown on drawn non-active chars */
   .char-btn-dot {
     position: absolute;
