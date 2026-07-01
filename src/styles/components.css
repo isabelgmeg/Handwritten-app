@@ -880,33 +880,41 @@
   ═══════════════════════════════════════════════════════════════════════════ */
 
   .community-page {
-    max-width: 1200px;
-    margin-inline: auto;
+    background-color: #F5F0E4;
+    min-height: calc(100vh - var(--header-height, 53px));
     padding: 3rem 2rem 6rem;
   }
 
   .community-header {
     text-align: center;
-    margin-bottom: 3rem;
+    margin-bottom: 4rem;
   }
 
   .community-title {
-    font-family: var(--font-display);
-    font-size: 2rem;
-    font-weight: var(--font-weight-bold);
-    letter-spacing: -0.02em;
-    color: var(--foreground);
-    margin-bottom: 0.5rem;
+    font-family: var(--font-script);
+    font-size: clamp(3rem, 7vw, 5.5rem);
+    font-weight: var(--font-weight-normal);
+    /* Fixed warm red — immune to --theme-hue changes */
+    color: oklch(0.562 0.198 35);
+    /* Stroke matching fill for visual weight on this slim font */
+    -webkit-text-stroke: 1px oklch(0.562 0.198 35);
+    paint-order: stroke fill;
+    line-height: 1.1;
+    margin: 0;
+    pointer-events: none;
   }
 
   .community-subtitle {
+    font-family: var(--font-display);
     font-size: 0.875rem;
     color: var(--muted-foreground);
   }
 
   .community-board {
+    max-width: 1100px;
+    margin-inline: auto;
     columns: 3;
-    column-gap: 2rem;
+    column-gap: 3rem;
 
     @media (max-width: 900px) { columns: 2; }
     @media (max-width: 560px) { columns: 1; }
@@ -914,21 +922,22 @@
 
   .community-note-card {
     break-inside: avoid;
-    margin-bottom: 2rem;
+    /* Top margin leaves room for tape overhang */
+    margin-top: 2.5rem;
+    margin-bottom: 3rem;
     border-radius: var(--radius-lg);
-    padding: 1.5rem;
+    padding: 1.5rem 1.5rem 1.25rem;
     position: relative;
-    overflow: hidden;
+    /* overflow: visible so tape can hang above the card edge */
 
-    /* Paper lift — same treatment as love-letter-card */
+    /* Paper lift */
     box-shadow:
       inset 0 1px 0 oklch(1 0 0 / 0.22),
       0 1px 1px oklch(0 0 0 / 0.06),
       0 4px 14px oklch(0 0 0 / 0.10),
       0 12px 32px oklch(0 0 0 / 0.07);
 
-    /* Hover lifts the card slightly */
-    transition: box-shadow var(--transition-base), transform var(--transition-base);
+    transition: box-shadow var(--transition-base);
 
     &:hover {
       box-shadow:
@@ -939,19 +948,35 @@
     }
   }
 
-  /* Paper grain — same SVG noise as the love letter card */
+  /* Tape — hangs above the top edge of each card */
+  .community-note-tape {
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    /* horizontal centering is in the transform via inline style (angle varies per card) */
+    width: 72px;
+    pointer-events: none;
+    z-index: 2;
+    filter: drop-shadow(0 1px 3px oklch(0 0 0 / 0.18));
+  }
+
+  /* Paper grain — clipped to card via clip-path instead of overflow:hidden */
   .community-note-grain {
     position: absolute;
     inset: 0;
     pointer-events: none;
+    border-radius: var(--radius-lg);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.62' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
     background-repeat: repeat;
     background-size: 180px 180px;
     mix-blend-mode: soft-light;
     opacity: 0.6;
+    z-index: 0;
   }
 
   .community-note-body {
+    position: relative;
+    z-index: 1;
     margin-bottom: 1rem;
 
     & .preview-wrapper {
@@ -963,14 +988,46 @@
       mix-blend-mode: multiply;
       display: block;
     }
+
+    /* Dark-background notes: disable multiply so light ink stays visible */
+    &.community-note-body--dark-bg canvas {
+      mix-blend-mode: normal;
+    }
+  }
+
+  /* ── Skeleton loading cards ─────────────────────────────────────────────── */
+  .community-note-skeleton {
+    break-inside: avoid;
+    margin-top: 2.5rem;
+    margin-bottom: 3rem;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem 1.5rem 3rem;
+    background-color: oklch(0 0 0 / 0.04);
+    animation: skeleton-pulse 1.8s ease-in-out infinite;
+  }
+
+  .community-note-skeleton-line {
+    height: 11px;
+    border-radius: 6px;
+    background-color: oklch(0 0 0 / 0.07);
+    margin-bottom: 12px;
+
+    &:last-child { margin-bottom: 0; }
+  }
+
+  @keyframes skeleton-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.45; }
   }
 
   .community-note-footer {
+    position: relative;
+    z-index: 1;
     display: flex;
     justify-content: space-between;
     align-items: baseline;
     gap: 0.5rem;
-    opacity: 0.6;
+    opacity: 0.55;
   }
 
   .community-note-author {

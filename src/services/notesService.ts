@@ -1,6 +1,8 @@
 import { supabase } from '@/lib/supabase';
 import type { GlyphMap, ScriptMode } from '@/types';
 
+export type NoteType = "plain" | "ruled" | "squared";
+
 export interface CommunityNote {
   id: string;
   message: string;
@@ -12,6 +14,7 @@ export interface CommunityNote {
   script_mode: ScriptMode;
   note_bg: string;
   note_ink: string;
+  note_type: NoteType;
   created_at: string;
 }
 

@@ -175,13 +175,15 @@ export function drawTemplate(
   theme: CanvasTheme,
   templateFont?: string,
   italic = false,
+  bold = false,
 ): void {
   ctx.save();
   const fontSize = (BASELINE_Y - CAP_Y) * 1.0;
   const family = templateFont
     ? `'${templateFont}'`
     : "'Open Sans', Arial, sans-serif";
-  ctx.font = `${fontSize}px ${family}`;
+  const weight = bold ? "bold " : "";
+  ctx.font = `${weight}${fontSize}px ${family}`;
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "center";
   ctx.fillStyle = theme.template;
@@ -406,13 +408,14 @@ export function fullRedraw(
   letterSpacing = 0,
   anchorY: number = BASELINE_Y,
   baseStrokes?: Stroke[],
+  isBold = false,
 ): void {
   const ctx = canvas.getContext("2d")!;
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
   if (showGuides) drawGuides(ctx, theme);
   drawConnectionGuides(ctx, letterSpacing, scriptMode, anchorY, theme);
-  if (showTemplate && char) drawTemplate(ctx, char, theme, templateFont, isItalic);
+  if (showTemplate && char) drawTemplate(ctx, char, theme, templateFont, isItalic, isBold);
 
   if (baseStrokes?.length) drawGhostStrokes(ctx, baseStrokes, grainCanvas, grain, theme);
 
