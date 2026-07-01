@@ -1,4 +1,4 @@
-import type { FontStyle, StyleGlyphs, ScriptMode } from "@/types";
+import type { FontStyle, StyleGlyphs, ScriptMode, Stroke } from "@/types";
 import {
   UPM,
   ASCENDER,
@@ -7,7 +7,7 @@ import {
   CONNECT_OVERLAP,
 } from "@/constants";
 import { GLYPH_NAMES } from "@/constants/glyphs";
-import { FONT_STYLES } from "@/constants/characters";
+import { FONT_STYLES, ACCENT_BASE_MAP } from "@/constants/characters";
 import { canvasToFont, getEffectivePoints } from "@/utils";
 import getStroke from "perfect-freehand";
 
@@ -58,7 +58,22 @@ export async function downloadFont(
   }
 
   // Check for drawn glyphs
-  const drawn = Object.entries(glyphs[styleKey]).filter(([, s]) => s.length > 0);
+  const glyphMap = glyphs[styleKey];
+  const ownDrawnChars = new Set(
+    Object.keys(glyphMap).filter((c) => (glyphMap[c]?.length ?? 0) > 0),
+  );
+
+  // Also include accented chars whose base char has been drawn (even if accent
+  // marks haven't been added yet — they inherit the base shape automatically).
+  const impliedAccentChars = Object.keys(ACCENT_BASE_MAP).filter(
+    (ac) => !ownDrawnChars.has(ac) && ownDrawnChars.has(ACCENT_BASE_MAP[ac]),
+  );
+
+  const drawn: [string, Stroke[]][] = [
+    ...Array.from(ownDrawnChars).map((c): [string, Stroke[]] => [c, glyphMap[c]]),
+    ...impliedAccentChars.map((ac): [string, Stroke[]] => [ac, []]),
+  ];
+
   if (!drawn.length) {
     const styleMeta = FONT_STYLES.find((s) => s.key === styleKey);
     return {
@@ -92,8 +107,18 @@ export async function downloadFont(
   const list: any[] = [notdef, space];
 
   // Convert each drawn glyph with per-glyph error isolation
-  for (const [char, strokes] of drawn) {
+  for (const [char, ownStrokes] of drawn) {
     try {
+      // For accented chars, prepend base-char strokes so the exported glyph
+      // contains both the base letter shape and the user-drawn accent marks.
+      const baseChar = ACCENT_BASE_MAP[char];
+      const baseStrokes: Stroke[] = baseChar ? (glyphMap[baseChar] ?? []) : [];
+      const strokes = baseChar ? [...baseStrokes, ...ownStrokes] : ownStrokes;
+
+      if (baseChar && ownStrokes.length === 0) {
+        warnings.push(`"${char}" has no accent marks drawn — exported using base "${baseChar}" only`);
+      }
+
       const p = new opentype.Path();
       let hasValidStroke = false;
 

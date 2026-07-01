@@ -14,7 +14,7 @@ import {
   CAP_Y,
   DESC_Y,
 } from "@/constants";
-import { ALL_CHARS, FONT_STYLES } from "@/constants";
+import { ALL_CHARS, FONT_STYLES, ACCENT_BASE_MAP } from "@/constants";
 
 // Services
 import {
@@ -118,6 +118,10 @@ export default function App() {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const currentStrokes = glyphs[canvasState.activeStyle][canvasState.currentChar] ?? [];
+  const accentBaseChar = ACCENT_BASE_MAP[canvasState.currentChar];
+  const baseStrokes = accentBaseChar
+    ? (glyphs[canvasState.activeStyle][accentBaseChar] ?? [])
+    : [];
   const drawnCount = Object.values(glyphs[canvasState.activeStyle]).filter((s) => s.length > 0).length;
   const totalDrawnCount = Object.values(glyphs).reduce(
     (sum, styleGlyphs) => sum + Object.values(styleGlyphs).filter((s) => s.length > 0).length,
@@ -368,12 +372,15 @@ export default function App() {
     // Refresh theme once per redraw cycle (not on every pointer event)
     canvasThemeRef.current = getCanvasTheme();
     if (c) {
+      // Suppress the system-font template when the ghost layer is active —
+      // the drawn base char is a better reference and they'd overlap confusingly.
+      const showTemplate = canvasState.showTemplate && !(accentBaseChar && baseStrokes.length > 0);
       fullRedraw(
         c,
         currentStrokes,
         canvasState.currentChar,
         canvasState.showGuides,
-        canvasState.showTemplate,
+        showTemplate,
         brushSettings.grain,
         grainCanvas,
         canvasThemeRef.current,
@@ -381,12 +388,15 @@ export default function App() {
         isItalic,
         canvasState.scriptMode,
         previewState.letterSpacing,
-        canvasState.connectAnchorY
+        canvasState.connectAnchorY,
+        baseStrokes.length ? baseStrokes : undefined,
       );
     }
   }, [
     currentStrokes,
+    baseStrokes,
     canvasState.currentChar,
+    accentBaseChar,
     canvasState.showGuides,
     canvasState.showTemplate,
     brushSettings.grain,
@@ -518,6 +528,15 @@ export default function App() {
                   <ChevronRight size={15} />
                 </button>
               </div>
+
+              {/* Accent mode indicator */}
+              {accentBaseChar && (
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-[11px]">
+                  <span className={baseStrokes.length === 0 ? "text-destructive" : ""}>
+                    {baseStrokes.length > 0 ? "Draw accent mark only" : `Draw base '${accentBaseChar}' first`}
+                  </span>
+                </div>
+              )}
 
               {/* Drawing canvas */}
               <DrawingCanvas

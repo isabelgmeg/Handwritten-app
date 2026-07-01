@@ -57,4 +57,14 @@ export const GLYPH_NAMES: Record<string, string> = {
   Ú: "Uacute",
   Ü: "Udieresis",
   Ñ: "Ntilde",
+
+  // Ligatures — standard OpenType names; step 4 will wire the liga feature table
+  fi:  "fi",
+  fl:  "fl",
+  ff:  "ff",
+  ffi: "ffi",
+  ffl: "ffl",
+  ll:  "l_l",
+  rr:  "r_r",
+  ch:  "c_h",
 };

@@ -46,7 +46,7 @@ export function LeftPanel({
                   <button
                     key={char}
                     onClick={() => onCharSelect(char)}
-                    className={["char-btn", active ? "char-btn-active" : ""].join(" ")}
+                    className={["char-btn", char.length > 1 ? "char-btn--wide" : "", active ? "char-btn-active" : ""].join(" ")}
                   >
                     {char}
                     {drawn && !active && <span className="char-btn-dot" />}
