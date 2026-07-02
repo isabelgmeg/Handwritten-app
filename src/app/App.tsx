@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 // Types
 import type { BrushType, Stroke, StyleGlyphs, PFOptions } from "@/types";
-import type { FontFormat } from "@/services/fontGenerator";
+import type { DownloadProgress } from "@/services/fontGenerator";
 
 // Constants
 import {
@@ -21,7 +21,6 @@ import { ALL_CHARS, FONT_STYLES, ACCENT_BASE_MAP } from "@/constants";
 import {
   LazyBrush,
   fullRedraw,
-  downloadFont,
   downloadAllStyles,
   getOrCreateGrainCanvas,
   getOrCreateGrainPixels,
@@ -121,8 +120,9 @@ export default function App() {
 
   // Download dialog state
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
-  const [downloadDialogMode, setDownloadDialogMode] = useState<"single" | "all">("single");
   const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
+  const [downloadStartedAt, setDownloadStartedAt] = useState<number | null>(null);
 
   // Share note dialog state
   const [shareNoteOpen, setShareNoteOpen] = useState(false);
@@ -138,7 +138,9 @@ export default function App() {
     (sum, styleGlyphs) => sum + Object.values(styleGlyphs).filter((s) => s.length > 0).length,
     0
   );
-  const activeStyleLabel = FONT_STYLES.find((s) => s.key === canvasState.activeStyle)?.label ?? "";
+  const drawnStyleLabels = FONT_STYLES.filter(({ key }) =>
+    Object.values(glyphs[key]).some((s) => s.length > 0),
+  ).map((s) => s.label);
   const dotRadius = brushSettings.stabilizer * canvasDisplayScale.current;
 
   // ── Event Handlers ───────────────────────────────────────────────────────
@@ -312,37 +314,23 @@ export default function App() {
     glyphState.clearGlyph(canvasState.currentChar);
   }, [canvasState.currentChar, glyphState]);
 
-  const handleDownloadFont = useCallback(() => {
-    setDownloadDialogMode("single");
-    setDownloadDialogOpen(true);
-  }, []);
-
-  const handleDownloadAllStyles = useCallback(() => {
-    setDownloadDialogMode("all");
+  const handleDownload = useCallback(() => {
     setDownloadDialogOpen(true);
   }, []);
 
   const handleConfirmDownload = useCallback(
-    async (name: string, format: FontFormat) => {
+    async (name: string) => {
       setIsDownloading(true);
+      setDownloadStartedAt(Date.now());
+      setDownloadProgress(null);
       try {
-        const result =
-          downloadDialogMode === "all"
-            ? await downloadAllStyles(
-                glyphs,
-                name,
-                previewState.letterSpacing,
-                canvasState.scriptMode,
-                format,
-              )
-            : await downloadFont(
-                glyphs,
-                canvasState.activeStyle,
-                name,
-                previewState.letterSpacing,
-                canvasState.scriptMode,
-                format,
-              );
+        const result = await downloadAllStyles(
+          glyphs,
+          name,
+          previewState.letterSpacing,
+          canvasState.scriptMode,
+          setDownloadProgress,
+        );
 
         if (!result.ok) {
           toast.error(result.error ?? "Download failed");
@@ -365,10 +353,11 @@ export default function App() {
         );
       } finally {
         setIsDownloading(false);
+        setDownloadProgress(null);
+        setDownloadStartedAt(null);
       }
     },
     [
-      downloadDialogMode,
       glyphs,
       previewState.letterSpacing,
       canvasState,
@@ -437,11 +426,8 @@ export default function App() {
         onAbout={() => navigate("/about")}
         onBack={() => navigate("/")}
         onCommunity={() => navigate("/community")}
-        onDownload={handleDownloadFont}
-        onDownloadAll={handleDownloadAllStyles}
-        drawnCount={drawnCount}
+        onDownload={handleDownload}
         totalDrawnCount={totalDrawnCount}
-        activeStyleLabel={activeStyleLabel}
       />
 
       {/* Spacer so content clears the fixed header */}
@@ -712,12 +698,11 @@ export default function App() {
         open={downloadDialogOpen}
         onOpenChange={setDownloadDialogOpen}
         initialFontName={canvasState.fontName}
-        mode={downloadDialogMode}
-        styleLabel={
-          FONT_STYLES.find((s) => s.key === canvasState.activeStyle)?.label ?? ""
-        }
+        drawnStyleLabels={drawnStyleLabels}
         onDownload={handleConfirmDownload}
         isDownloading={isDownloading}
+        progress={downloadProgress}
+        startedAt={downloadStartedAt}
       />
 
       <Toaster richColors position="bottom-right" />
