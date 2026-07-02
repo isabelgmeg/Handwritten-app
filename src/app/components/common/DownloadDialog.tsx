@@ -7,39 +7,52 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/app/components/ui/dialog";
-import type { FontFormat } from "@/services/fontGenerator";
+import type { DownloadProgress } from "@/services/fontGenerator";
 
 interface DownloadDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   initialFontName: string;
-  mode: "single" | "all";
-  styleLabel: string;
-  onDownload: (fontName: string, format: FontFormat) => void;
+  drawnStyleLabels: string[];
+  onDownload: (fontName: string) => void;
   isDownloading: boolean;
+  progress?: DownloadProgress | null;
+  startedAt?: number | null;
 }
-
-const FORMAT_OPTIONS: { value: FontFormat; label: string; desc: string }[] = [
-  { value: "otf", label: "OTF", desc: "Desktop & print apps" },
-  { value: "woff2", label: "WOFF2", desc: "Web (CSS @font-face)" },
-  { value: "both", label: "Both", desc: "OTF + WOFF2" },
-];
 
 export function DownloadDialog({
   open,
   onOpenChange,
   initialFontName,
-  mode,
-  styleLabel,
+  drawnStyleLabels,
   onDownload,
   isDownloading,
+  progress,
+  startedAt,
 }: DownloadDialogProps) {
   const [fontName, setFontName] = useState(initialFontName);
-  const [format, setFormat] = useState<FontFormat>("otf");
+  const [elapsedMs, setElapsedMs] = useState(0);
 
   useEffect(() => {
     if (open) setFontName(initialFontName);
   }, [open, initialFontName]);
+
+  useEffect(() => {
+    if (!isDownloading || startedAt == null) {
+      setElapsedMs(0);
+      return;
+    }
+    setElapsedMs(Date.now() - startedAt);
+    const id = setInterval(() => setElapsedMs(Date.now() - startedAt), 200);
+    return () => clearInterval(id);
+  }, [isDownloading, startedAt]);
+
+  const elapsedLabel = (elapsedMs / 1000).toFixed(1);
+  const buttonLabel = isDownloading
+    ? progress
+      ? `Generating ${progress.styleLabel} (${progress.index}/${progress.total})… ${elapsedLabel}s`
+      : `Generating… ${elapsedLabel}s`
+    : "Download";
 
   return (
     <Dialog open={open} onOpenChange={isDownloading ? undefined : onOpenChange}>
@@ -69,40 +82,13 @@ export function DownloadDialog({
             </p>
           </div>
 
-          {/* Format selector */}
-          <div className="flex flex-col gap-1.5">
-            <span className="label-caps">Format</span>
-            <div className="flex gap-2">
-              {FORMAT_OPTIONS.map(({ value, label, desc }) => (
-                <button
-                  key={value}
-                  onClick={() => setFormat(value)}
-                  disabled={isDownloading}
-                  style={{
-                    boxShadow: format === value
-                      ? "var(--shadow-neu-inset-xs)"
-                      : "var(--shadow-neu-raised-sm)",
-                  }}
-                  className={[
-                    "flex flex-1 flex-col rounded-md bg-background border-none px-3 py-2 text-left text-sm cursor-pointer",
-                    "transition-all disabled:opacity-50",
-                    format === value
-                      ? "text-accent"
-                      : "text-muted-foreground hover:text-foreground",
-                  ].join(" ")}
-                >
-                  <span className="font-semibold text-xs">{label}</span>
-                  <span className="text-xs opacity-70">{desc}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Scope hint */}
           <p className="field-hint">
             Downloading:{" "}
             <span className="font-medium text-foreground">
-              {mode === "all" ? "All drawn styles" : styleLabel}
+              {drawnStyleLabels.length > 1
+                ? `${drawnStyleLabels.join(", ")} (as a .zip)`
+                : `${drawnStyleLabels[0] ?? ""} (.otf)`}
             </span>
           </p>
         </div>
@@ -116,12 +102,12 @@ export function DownloadDialog({
             Cancel
           </button>
           <button
-            onClick={() => onDownload(fontName.trim() || "My Handwriting", format)}
+            onClick={() => onDownload(fontName.trim() || "My Handwriting")}
             disabled={isDownloading}
             className="btn btn-md btn-neu-accent gap-1.5"
           >
             <Download size={13} />
-            {isDownloading ? "Generating…" : "Download"}
+            {buttonLabel}
           </button>
         </DialogFooter>
       </DialogContent>

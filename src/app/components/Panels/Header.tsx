@@ -7,10 +7,7 @@ interface HeaderProps {
   onBack?: () => void;
   onCommunity?: () => void;
   onDownload?: () => void;
-  onDownloadAll?: () => void;
-  drawnCount?: number;
   totalDrawnCount?: number;
-  activeStyleLabel?: string;
 }
 
 export function Header({
@@ -19,10 +16,7 @@ export function Header({
   onBack,
   onCommunity,
   onDownload,
-  onDownloadAll,
-  drawnCount = 0,
   totalDrawnCount = 0,
-  activeStyleLabel = "",
 }: HeaderProps) {
   return (
     <header
@@ -49,22 +43,13 @@ export function Header({
           <>
             <button
               onClick={onDownload}
-              disabled={drawnCount === 0}
-              title={drawnCount === 0 ? `Draw some ${activeStyleLabel} characters first` : `Download ${activeStyleLabel}`}
+              disabled={totalDrawnCount === 0}
+              title={totalDrawnCount === 0 ? "Draw some characters first" : "Download all drawn styles"}
               className="btn btn-sm btn-neu-accent gap-1.5"
             >
               <Download size={12} />
-              <span className="hidden sm:inline">{activeStyleLabel}</span>
-              {drawnCount > 0 && <span className="opacity-60 text-[10px]">{drawnCount}</span>}
-            </button>
-            <button
-              onClick={onDownloadAll}
-              disabled={totalDrawnCount === 0}
-              title={totalDrawnCount === 0 ? "Draw some characters first" : "Download all drawn styles"}
-              className="btn btn-sm btn-ghost gap-1.5"
-            >
-              All
-              {totalDrawnCount > 0 && <span className="opacity-50 text-[10px]">{totalDrawnCount}</span>}
+              <span className="hidden sm:inline">Download</span>
+              {totalDrawnCount > 0 && <span className="opacity-60 text-[10px]">{totalDrawnCount}</span>}
             </button>
             <span className="text-border opacity-40 select-none">|</span>
           </>

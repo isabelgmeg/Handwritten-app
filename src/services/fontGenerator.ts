@@ -11,19 +11,55 @@ import { FONT_STYLES, ACCENT_BASE_MAP } from "@/constants/characters";
 import { canvasToFont, getEffectivePoints } from "@/utils";
 import getStroke from "perfect-freehand";
 
-export type FontFormat = "otf" | "woff2" | "both";
-
 export interface FontGeneratorResult {
   ok: boolean;
   error?: string;
   warnings: string[];
 }
 
-function triggerDownload(
-  buffer: ArrayBuffer | Uint8Array<ArrayBuffer>,
-  fileName: string,
-  mimeType: string,
-): void {
+export interface DownloadProgress {
+  styleKey: FontStyle;
+  styleLabel: string;
+  index: number;
+  total: number;
+  elapsedMs: number;
+}
+
+// A hang inside opentype.js / getStroke never throws — it just never
+// resolves — so try/catch can't surface it. Race against a timeout instead,
+// so the UI can recover and report an error rather than freezing forever.
+const GENERATION_TIMEOUT_MS = 20_000;
+
+// Below this many drawn characters, a style is likely an accident (e.g. one
+// stray stroke on "Bold") rather than an intentionally sparse font.
+const SPARSE_STYLE_THRESHOLD = 10;
+
+function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Timed out generating ${label} (took longer than ${GENERATION_TIMEOUT_MS / 1000}s)`));
+    }, GENERATION_TIMEOUT_MS);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
+interface BuildStyleFontResult {
+  ok: boolean;
+  error?: string;
+  warnings: string[];
+  buffer?: ArrayBuffer;
+}
+
+function triggerDownload(buffer: ArrayBuffer | Uint8Array<ArrayBuffer>, fileName: string, mimeType: string): void {
   const blob = new Blob([buffer as BlobPart], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -35,14 +71,15 @@ function triggerDownload(
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export async function downloadFont(
+// Builds the OTF buffer for a single style, without touching the DOM.
+// Shared by the single-style download and the "download all" zip flow.
+async function buildStyleFont(
   glyphs: StyleGlyphs,
   styleKey: FontStyle,
   fontName: string,
   letterSpacing: number,
-  scriptMode: ScriptMode = "normal",
-  format: FontFormat = "otf",
-): Promise<FontGeneratorResult> {
+  scriptMode: ScriptMode,
+): Promise<BuildStyleFontResult> {
   const warnings: string[] = [];
 
   // Load opentype.js
@@ -50,6 +87,7 @@ export async function downloadFont(
   try {
     opentype = await import("opentype.js");
   } catch (err) {
+    console.error("[FontGenerator] opentype.js failed to load:", err);
     return {
       ok: false,
       error: "Failed to load font library. Please refresh the page and try again.",
@@ -81,6 +119,16 @@ export async function downloadFont(
       error: `No characters drawn for ${styleMeta?.label ?? styleKey}. Draw some characters first.`,
       warnings,
     };
+  }
+
+  // A style with only a handful of glyphs still exports successfully (opentype.js
+  // only needs .notdef + one real glyph), but every undrawn character falls back
+  // to blank/missing in whatever app uses it — easy to miss, worth flagging.
+  if (ownDrawnChars.size < SPARSE_STYLE_THRESHOLD) {
+    const styleMeta = FONT_STYLES.find((s) => s.key === styleKey);
+    warnings.push(
+      `${styleMeta?.label ?? styleKey} only has ${ownDrawnChars.size} character${ownDrawnChars.size === 1 ? "" : "s"} drawn — most letters will be blank in that file.`,
+    );
   }
 
   const styleMeta = FONT_STYLES.find((s) => s.key === styleKey)!;
@@ -219,44 +267,24 @@ export async function downloadFont(
     };
   }
 
-  const baseName = resolvedName.replace(/\s+/g, "_");
-  const styleLabel = styleMeta.label.replace(/\s+/g, "");
+  return { ok: true, warnings, buffer: arrayBuffer };
+}
 
-  // Download OTF
-  if (format === "otf" || format === "both") {
-    try {
-      triggerDownload(arrayBuffer, `${baseName}-${styleLabel}.otf`, "font/otf");
-    } catch (err) {
-      console.error("[FontGenerator] OTF download failed:", err);
-      return {
-        ok: false,
-        error: `Failed to trigger OTF download: ${err instanceof Error ? err.message : String(err)}`,
-        warnings,
-      };
-    }
-  }
+// Font name comes from a free-text input, but flows straight into a
+// filename (and a zip entry name). Strip characters that are illegal in
+// Windows/macOS filenames or that would create unintended nested paths in
+// the zip, and cap the length so the resulting file stays usable.
+function sanitizeFileNamePart(raw: string): string {
+  const cleaned = raw
+    .trim()
+    .replace(/[\\/:*?"<>|]+/g, "")
+    .replace(/\s+/g, "_")
+    .slice(0, 60);
+  return cleaned || "My_Handwriting";
+}
 
-  // Convert and download WOFF2
-  if (format === "woff2" || format === "both") {
-    try {
-      const { compress } = await import("wawoff2");
-      const woff2Buffer = await compress(new Uint8Array(arrayBuffer));
-      triggerDownload(woff2Buffer as Uint8Array<ArrayBuffer>, `${baseName}-${styleLabel}.woff2`, "font/woff2");
-    } catch (err) {
-      console.error("[FontGenerator] WOFF2 conversion failed:", err);
-      if (format === "woff2") {
-        return {
-          ok: false,
-          error: `Failed to generate WOFF2: ${err instanceof Error ? err.message : String(err)}`,
-          warnings,
-        };
-      }
-      // In "both" mode, OTF already succeeded — report as warning
-      warnings.push("WOFF2 generation failed — OTF was downloaded successfully.");
-    }
-  }
-
-  return { ok: true, warnings };
+function fileBaseName(fontName: string, styleLabel: string): string {
+  return `${sanitizeFileNamePart(fontName)}-${styleLabel.replace(/\s+/g, "")}`;
 }
 
 export async function downloadAllStyles(
@@ -264,27 +292,75 @@ export async function downloadAllStyles(
   fontName: string,
   letterSpacing: number,
   scriptMode: ScriptMode = "normal",
-  format: FontFormat = "otf",
+  onProgress?: (progress: DownloadProgress) => void,
 ): Promise<FontGeneratorResult> {
   const allWarnings: string[] = [];
   const errors: string[] = [];
+  const zipEntries: Record<string, Uint8Array> = {};
 
-  for (const { key } of FONT_STYLES) {
-    if (Object.values(glyphs[key]).some((s) => s.length > 0)) {
-      const result = await downloadFont(
-        glyphs,
-        key,
-        fontName,
-        letterSpacing,
-        scriptMode,
-        format,
+  const stylesToBuild = FONT_STYLES.filter(({ key }) =>
+    Object.values(glyphs[key]).some((s) => s.length > 0),
+  );
+
+  const startedAt = Date.now();
+  let index = 0;
+  for (const { key, label } of stylesToBuild) {
+    index += 1;
+    onProgress?.({
+      styleKey: key,
+      styleLabel: label,
+      index,
+      total: stylesToBuild.length,
+      elapsedMs: Date.now() - startedAt,
+    });
+
+    let result: BuildStyleFontResult;
+    try {
+      result = await withTimeout(
+        buildStyleFont(glyphs, key, fontName, letterSpacing, scriptMode),
+        label,
       );
-      allWarnings.push(...result.warnings);
-      if (!result.ok && result.error) {
-        errors.push(`${key}: ${result.error}`);
-      }
-      await new Promise((r) => setTimeout(r, 300));
+    } catch (err) {
+      errors.push(`${label}: ${err instanceof Error ? err.message : String(err)}`);
+      continue;
     }
+
+    allWarnings.push(...result.warnings);
+    if (!result.ok || !result.buffer) {
+      if (result.error) errors.push(`${label}: ${result.error}`);
+      continue;
+    }
+
+    const base = fileBaseName(fontName, label);
+    zipEntries[`${base}.otf`] = new Uint8Array(result.buffer);
+  }
+
+  const fileNames = Object.keys(zipEntries);
+  if (fileNames.length === 0) {
+    return {
+      ok: false,
+      error: errors.length > 0 ? errors.join("\n") : "No characters drawn for any style.",
+      warnings: allWarnings,
+    };
+  }
+
+  try {
+    if (fileNames.length === 1) {
+      // Only one style was drawn — a zip-of-one is just friction, so hand
+      // back the .otf directly instead.
+      triggerDownload(zipEntries[fileNames[0]] as Uint8Array<ArrayBuffer>, fileNames[0], "font/otf");
+    } else {
+      const { zipSync } = await import("fflate");
+      const zipped = zipSync(zipEntries, { level: 6 });
+      triggerDownload(zipped as Uint8Array<ArrayBuffer>, `${sanitizeFileNamePart(fontName)}-fonts.zip`, "application/zip");
+    }
+  } catch (err) {
+    console.error("[FontGenerator] Download failed:", err);
+    return {
+      ok: false,
+      error: `Failed to bundle fonts: ${err instanceof Error ? err.message : String(err)}`,
+      warnings: allWarnings,
+    };
   }
 
   if (errors.length > 0) {
