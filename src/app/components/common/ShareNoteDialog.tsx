@@ -10,6 +10,7 @@ import {
 } from "@/app/components/ui/dialog";
 import { submitNote } from "@/services/notesService";
 import type { GlyphMap, ScriptMode } from "@/types";
+import { track } from "@/lib/analytics";
 
 // "canvas-default" / "canvas-ink" are sentinel values resolved at render time
 // against the current theme CSS variables.
@@ -100,9 +101,11 @@ export function ShareNoteDialog({
     });
     setSubmitting(false);
     if (!result.ok) {
+      track("note_submit_failed", { error: result.error });
       setError(result.error ?? "Something went wrong.");
       return;
     }
+    track("note_submitted", { note_type: noteType });
     toast("Your note is live! 🎉", { description: "Others can now see your handwriting." });
     onShared();
     onOpenChange(false);

@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import getStroke from "perfect-freehand";
 import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Pencil, Hand } from "lucide-react";
 import { toast } from "sonner";
 
 // Types
-import type { BrushType, Stroke, StyleGlyphs, PFOptions } from "@/types";
+import type { BrushType, ScriptMode, Stroke, StyleGlyphs, PFOptions } from "@/types";
 import type { DownloadProgress } from "@/services/fontGenerator";
 
 // Constants
@@ -30,6 +30,7 @@ import {
 } from "@/services";
 import { buildBrushOptions, svgPathFromStroke, getCanvasTheme } from "@/utils";
 import type { CanvasTheme } from "@/utils/canvasTheme";
+import { track, trackDebounced } from "@/lib/analytics";
 
 // Hooks
 import {
@@ -115,6 +116,15 @@ export default function App() {
     : location.pathname === "/about" ? "about"
     : "studio";
 
+  // Analytics: one session_start per tab session, one page_view per route change
+  useEffect(() => {
+    track("session_start");
+  }, []);
+
+  useEffect(() => {
+    track("page_view", { path: location.pathname });
+  }, [location.pathname]);
+
   // Draw mode — on touch devices, off by default so scroll works
   const [drawMode, setDrawMode] = useState(false);
 
@@ -149,6 +159,7 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = "";
+    track("font_uploaded");
     try {
       const buf = await file.arrayBuffer();
       const name = "UserFont_" + Date.now();
@@ -302,21 +313,64 @@ export default function App() {
     };
 
     glyphState.addStroke(canvasState.currentChar, newStroke);
+    track("glyph_stroke_added", { char: canvasState.currentChar, style: canvasState.activeStyle });
     currentPoints.current = [];
     activeRef.current?.getContext("2d")?.clearRect(0, 0, CW, CH);
-  }, [canvasState.currentChar, glyphState, lazyDot]);
+  }, [canvasState.currentChar, canvasState.activeStyle, glyphState, lazyDot]);
 
   const undoStroke = useCallback(() => {
     glyphState.undoStroke(canvasState.currentChar);
+    track("undo_stroke");
   }, [canvasState.currentChar, glyphState]);
 
   const clearGlyph = useCallback(() => {
     glyphState.clearGlyph(canvasState.currentChar);
+    track("clear_glyph");
   }, [canvasState.currentChar, glyphState]);
 
   const handleDownload = useCallback(() => {
     setDownloadDialogOpen(true);
+    track("download_dialog_opened");
   }, []);
+
+  // Tracked wrappers for feature-usage controls. Continuous sliders are
+  // debounced so a drag produces one event instead of dozens.
+  const trackedSetScriptMode = useCallback(
+    (mode: ScriptMode) => {
+      canvasState.setScriptMode(mode);
+      track("script_mode_changed", { mode });
+    },
+    [canvasState],
+  );
+  const trackedSetLetterSpacing = useCallback(
+    (value: number) => {
+      previewState.setLetterSpacing(value);
+      trackDebounced("letter_spacing_changed", { value });
+    },
+    [previewState],
+  );
+  const trackedSetLineHeight = useCallback(
+    (value: number) => {
+      previewState.setLineHeight(value);
+      trackDebounced("line_height_changed", { value });
+    },
+    [previewState],
+  );
+  const trackedSetThemeHue = useCallback((value: number) => {
+    setThemeHue(value);
+    trackDebounced("theme_hue_changed", { value });
+  }, []);
+  const trackedSetBrushType = useCallback(
+    (type: BrushType) => {
+      brushSettings.actions.setBrushType(type);
+      track("brush_changed", { type });
+    },
+    [brushSettings.actions],
+  );
+  const trackedBrushActions = useMemo(
+    () => ({ ...brushSettings.actions, setBrushType: trackedSetBrushType }),
+    [brushSettings.actions, trackedSetBrushType],
+  );
 
   const handleConfirmDownload = useCallback(
     async (name: string) => {
@@ -333,10 +387,13 @@ export default function App() {
         );
 
         if (!result.ok) {
+          track("font_download_failed", { error: result.error });
           toast.error(result.error ?? "Download failed");
         } else {
+          track("font_download_succeeded", { warnings: result.warnings.length });
           setDownloadDialogOpen(false);
           setShareNoteOpen(true);
+          track("share_dialog_opened", { source: "post_download" });
           canvasState.setFontName(name);
           if (result.warnings.length > 0) {
             toast.warning("Font downloaded with warnings", {
@@ -348,9 +405,9 @@ export default function App() {
           }
         }
       } catch (err) {
-        toast.error(
-          `Unexpected error: ${err instanceof Error ? err.message : String(err)}`,
-        );
+        const message = err instanceof Error ? err.message : String(err);
+        track("font_download_failed", { error: message });
+        toast.error(`Unexpected error: ${message}`);
       } finally {
         setIsDownloading(false);
         setDownloadProgress(null);
@@ -437,7 +494,7 @@ export default function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/community" element={
           <CommunityPage
-            onAddNote={() => setShareNoteOpen(true)}
+            onAddNote={() => { setShareNoteOpen(true); track("share_dialog_opened", { source: "community_page" }); }}
             refreshKey={communityRefreshKey}
           />
         } />
@@ -659,17 +716,17 @@ export default function App() {
             isOpen={layoutState.rightOpen}
             onClose={() => layoutState.setRightOpen(false)}
             brushSettings={brushSettings.settings}
-            brushActions={brushSettings.actions}
+            brushActions={trackedBrushActions}
             scriptMode={canvasState.scriptMode}
-            onScriptModeChange={canvasState.setScriptMode}
+            onScriptModeChange={trackedSetScriptMode}
             previewSize={previewState.previewSize}
             onPreviewSizeChange={previewState.setPreviewSize}
             letterSpacing={previewState.letterSpacing}
-            onLetterSpacingChange={previewState.setLetterSpacing}
+            onLetterSpacingChange={trackedSetLetterSpacing}
             lineHeight={previewState.lineHeight}
-            onLineHeightChange={previewState.setLineHeight}
+            onLineHeightChange={trackedSetLineHeight}
             themeHue={themeHue}
-            onThemeHueChange={setThemeHue}
+            onThemeHueChange={trackedSetThemeHue}
           />
         </div>
 

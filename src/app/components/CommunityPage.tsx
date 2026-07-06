@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { PreviewCanvas } from "./Canvas/PreviewCanvas";
 import { fetchNotes } from "@/services/notesService";
 import type { CommunityNote, NoteType } from "@/services/notesService";
+import { track } from "@/lib/analytics";
 
 function resolveNoteBg(value: string): string {
   return value === "canvas-default" ? "var(--color-note-surface)" : value;
@@ -175,7 +176,10 @@ export function CommunityPage({ onAddNote, refreshKey }: CommunityPageProps) {
     setLoading(true);
     setError(null);
     fetchNotes()
-      .then(setNotes)
+      .then((n) => {
+        setNotes(n);
+        track("community_page_viewed", { note_count: n.length });
+      })
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
   }, [refreshKey]);
