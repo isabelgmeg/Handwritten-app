@@ -128,6 +128,20 @@ export default function App() {
   // Draw mode — on touch devices, off by default so scroll works
   const [drawMode, setDrawMode] = useState(false);
 
+  // Discoverability hint — pulse the draw-mode toggle until the user taps it
+  const [lockHintSeen, setLockHintSeen] = useState(false);
+  const [canvasInView, setCanvasInView] = useState(false);
+  useEffect(() => {
+    const el = committedRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => setCanvasInView(entry.isIntersecting),
+      { threshold: 0.6 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // Download dialog state
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -144,6 +158,7 @@ export default function App() {
     ? (glyphs[canvasState.activeStyle][accentBaseChar] ?? [])
     : [];
   const drawnCount = Object.values(glyphs[canvasState.activeStyle]).filter((s) => s.length > 0).length;
+  const showLockHint = !drawMode && !lockHintSeen && canvasInView && drawnCount === 0;
   const totalDrawnCount = Object.values(glyphs).reduce(
     (sum, styleGlyphs) => sum + Object.values(styleGlyphs).filter((s) => s.length > 0).length,
     0
@@ -554,7 +569,10 @@ export default function App() {
 
           <main className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-background min-w-0">
             {/* Drawing area */}
-            <div className="flex-shrink-0 flex flex-col items-center px-4 sm:px-6 pt-4 pb-2 gap-3">
+            <div
+              className="flex-shrink-0 flex flex-col items-center justify-center px-4 sm:px-6 pt-4 pb-10 sm:pb-2 gap-3 min-h-[calc(100dvh-var(--header-height,53px))] sm:min-h-0"
+              style={{ touchAction: drawMode ? "none" : "auto" }}
+            >
 
               {/* Style selector */}
               <div className="flex flex-wrap items-center gap-1.5 self-stretch justify-center">
@@ -625,10 +643,14 @@ export default function App() {
               <div className="flex items-center gap-2">
                 {/* Draw mode toggle — only visible on touch devices */}
                 <button
-                  onClick={() => setDrawMode(v => !v)}
+                  onClick={() => {
+                    setDrawMode(v => !v);
+                    setLockHintSeen(true);
+                  }}
                   className={[
                     "btn btn-sm gap-1.5 [@media(pointer:fine)]:hidden",
                     drawMode ? "btn-neu-accent" : "btn-ghost",
+                    showLockHint ? "lock-hint-pulse" : "",
                   ].join(" ")}
                   title={drawMode ? "Switch to scroll mode" : "Switch to draw mode"}
                 >
