@@ -101,6 +101,20 @@
     }
   }
 
+  /* Discoverability hint — breathes between resting and accent shadow */
+  .lock-hint-pulse {
+    animation: lock-hint-pulse 1.8s ease-in-out infinite;
+  }
+
+  @keyframes lock-hint-pulse {
+    0%, 100% { box-shadow: var(--shadow-neu-raised-sm); }
+    50%      { box-shadow: var(--shadow-accent); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lock-hint-pulse { animation: none; }
+  }
+
   /* Dark CTA — editorial, no neumorphism */
   .btn-primary {
     background-color: var(--foreground);
