@@ -20,7 +20,28 @@ export interface CommunityNote {
 
 export type NotePayload = Omit<CommunityNote, 'id' | 'created_at'>;
 
-export async function submitNote(payload: NotePayload): Promise<{ ok: boolean; error?: string; note?: CommunityNote }> {
+const NOT_CONFIGURED = 'Community notes are not available right now.';
+
+// Kept under the 2 MB the notes insert policy allows (supabase/notes.sql), since
+// Postgres's text form of the JSON is a little longer than JSON.stringify's.
+const MAX_GLYPHS_CHARS = 1_800_000;
+
+// A note only renders its message, one glyph per character (renderPreview), so
+// storing the rest of the alphabet just bloats the row and every community page load.
+function glyphsUsedBy(message: string, glyphs: GlyphMap): GlyphMap {
+  const used: GlyphMap = {};
+  for (const ch of new Set(message.split(''))) {
+    if (glyphs[ch]) used[ch] = glyphs[ch];
+  }
+  return used;
+}
+
+export async function submitNote(note: NotePayload): Promise<{ ok: boolean; error?: string; note?: CommunityNote }> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const payload = { ...note, glyphs: glyphsUsedBy(note.message, note.glyphs) };
+  if (JSON.stringify(payload.glyphs).length > MAX_GLYPHS_CHARS) {
+    return { ok: false, error: 'Your handwriting is too detailed to share as a note. Try simplifying a few letters.' };
+  }
   const { data, error } = await supabase
     .from('notes')
     .insert(payload)
@@ -31,6 +52,7 @@ export async function submitNote(payload: NotePayload): Promise<{ ok: boolean; e
 }
 
 export async function fetchNotes(): Promise<CommunityNote[]> {
+  if (!supabase) throw new Error(NOT_CONFIGURED);
   const { data, error } = await supabase
     .from('notes')
     .select('*')

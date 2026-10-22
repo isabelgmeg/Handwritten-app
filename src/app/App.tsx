@@ -402,7 +402,7 @@ export default function App() {
         );
 
         if (!result.ok) {
-          track("font_download_failed", { error: result.error });
+          track("font_download_failed", { error: result.error?.slice(0, 200) });
           toast.error(result.error ?? "Download failed");
         } else {
           track("font_download_succeeded", { warnings: result.warnings.length });
@@ -421,7 +421,7 @@ export default function App() {
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        track("font_download_failed", { error: message });
+        track("font_download_failed", { error: message.slice(0, 200) });
         toast.error(`Unexpected error: ${message}`);
       } finally {
         setIsDownloading(false);

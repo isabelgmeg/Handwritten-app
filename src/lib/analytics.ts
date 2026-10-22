@@ -27,11 +27,12 @@ function getSessionId(): string {
 }
 
 export function track(eventName: string, props: Record<string, unknown> = {}): void {
+  if (!supabase) return;
   try {
     const session_id = getSessionId();
     supabase
       .from("events")
-      .insert({ session_id, event_name: eventName, props })
+      .insert({ app: "font-creator", session_id, event_name: eventName, props })
       .then(({ error }) => {
         if (error) console.debug("[analytics] insert failed:", error.message);
       })
