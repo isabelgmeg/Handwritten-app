@@ -101,7 +101,7 @@ export function ShareNoteDialog({
     });
     setSubmitting(false);
     if (!result.ok) {
-      track("note_submit_failed", { error: result.error });
+      track("note_submit_failed", { error: result.error?.slice(0, 200) });
       setError(result.error ?? "Something went wrong.");
       return;
     }
@@ -151,6 +151,7 @@ export function ShareNoteDialog({
               type="text"
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
+              maxLength={60}
               placeholder="Anonymous"
               disabled={submitting}
               className={inputClass}
