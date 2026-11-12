@@ -20,6 +20,16 @@ export interface CommunityNote {
 
 export type NotePayload = Omit<CommunityNote, 'id' | 'created_at'>;
 
+// Notes created before proportional spacing shipped were laid out (and their
+// letter_spacing chosen) on the old fixed-cell layout; render them with it so
+// they look exactly as their authors shared them.
+// RELEASE: set this to the moment v2 goes live (see BACKLOG.md, v2 release checklist).
+export const PROPORTIONAL_LAYOUT_SINCE = "2026-11-13T00:00:00Z";
+
+export function noteLayoutVersion(note: Pick<CommunityNote, "created_at">): "proportional" | "legacy" {
+  return Date.parse(note.created_at) < Date.parse(PROPORTIONAL_LAYOUT_SINCE) ? "legacy" : "proportional";
+}
+
 const NOT_CONFIGURED = 'Community notes are not available right now.';
 
 // Kept under the 2 MB the notes insert policy allows (supabase/notes.sql), since

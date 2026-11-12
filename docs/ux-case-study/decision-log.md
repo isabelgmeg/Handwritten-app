@@ -126,6 +126,16 @@ These came from the designer's own walkthrough:
 - **Verified:** fonts were generated from test strokes and read back. Every value from the diagnostic now checks out (see the PR).
 - **Deliberately not changed:** in connected-script mode letters keep a fixed width, because strokes have to meet at the anchors shown on the canvas.
 
+## D11 · Old community notes keep their original look; cell guides removed
+
+**Date:** 2026-11-12 · **Status:** ✅ on `fix/font-metrics`
+
+- **Context:** the spacing fix (D10) changes how every message is laid out. Notes already shared were composed by their authors on the old layout, often with negative letter spacing to close the old gaps. Under the new layout, those letters would sit too close or touch.
+- **Decision (designer):** keep old notes as they are. Notes created before v2 goes live are drawn with the old fixed-width layout, so each one looks exactly as its author shared it. New notes use proportional spacing.
+- **Why:** a shared note is something the author made and published. Changing its look after the fact breaks that, even when the new spacing is technically better.
+- **Considered:** drawing old notes at spacing 0. Rejected because it would still change how they look.
+- **Second decision (designer):** remove the dashed "cell" lines from the canvas in normal mode. They showed the old fixed letter width, which no longer exists. Connected script still shows its entry and exit anchors.
+
 ---
 
 ## Open questions
@@ -133,5 +143,3 @@ These came from the designer's own walkthrough:
 - D01: why the landing + community experiment was rolled back (designer to fill in).
 - How do the Draw | Preview tabs feel on a real phone, and does the canvas fit on small screens such as the iPhone SE?
 - Should Preview show a sample of the font before anything is drawn?
-- D10: notes shared before the spacing fix were saved with letter spacing chosen under the old system, often negative to close the gaps. Should old notes render at spacing 0, or keep their stored value and risk letters touching?
-- D10: in normal mode the canvas still shows dashed "cell" lines from the old fixed-width system. They no longer mean anything. Should they be removed, or turned into a live width guide?

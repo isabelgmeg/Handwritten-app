@@ -13,7 +13,14 @@ import {
   PREVIEW_PADDING_TOP,
 } from "@/constants";
 import { svgPathFromStroke } from "@/utils";
-import { layoutGlyph, resolveGlyphStrokes, SPACE_ADVANCE_PX, type GlyphLayout } from "./glyphLayout";
+import {
+  layoutGlyph,
+  resolveGlyphStrokes,
+  spaceAdvancePx,
+  legacyAdvancePx,
+  type GlyphLayout,
+  type LayoutVersion,
+} from "./glyphLayout";
 
 /**
  * Render font preview with text.
@@ -30,11 +37,13 @@ export function renderPreview(
   scriptMode: ScriptMode = "normal",
   lineHeight: number = 1.15,
   paddingX: number = PREVIEW_PADDING_X,
+  layoutVersion: LayoutVersion = "proportional",
 ): void {
+  const legacy = layoutVersion === "legacy";
   const ctx = canvas.getContext("2d")!;
   // Canvas pixels → screen pixels: fontSizePx is the cap height
   const scale = fontSizePx / CAP_TO_BASE;
-  const spaceW = SPACE_ADVANCE_PX * scale;
+  const spaceW = spaceAdvancePx(layoutVersion) * scale;
   // lineH: baseline-to-baseline distance — fontSizePx IS the cap height (one "em"),
   // so lineHeight multiplies that directly, matching CSS line-height semantics.
   const lineH = fontSizePx * lineHeight;
@@ -46,7 +55,9 @@ export function renderPreview(
   const layouts = new Map<string, GlyphLayout | null>();
   const layoutFor = (ch: string) => {
     if (!layouts.has(ch)) {
-      layouts.set(ch, layoutGlyph(resolveGlyphStrokes(ch, glyphs), letterSpacing, scriptMode));
+      // Legacy notes rendered a character's own strokes only (no accent base)
+      const strokes = legacy ? (glyphs[ch] ?? []) : resolveGlyphStrokes(ch, glyphs);
+      layouts.set(ch, layoutGlyph(strokes, letterSpacing, scriptMode, layoutVersion));
     }
     return layouts.get(ch)!;
   };
@@ -55,6 +66,7 @@ export function renderPreview(
     if (ch === " ") return spaceW;
     const layout = layoutFor(ch);
     if (layout) return layout.advancePx * scale;
+    if (legacy) return legacyAdvancePx(letterSpacing, scriptMode) * scale;
     ctx.font = fallbackFont;
     return ctx.measureText(ch).width;
   };

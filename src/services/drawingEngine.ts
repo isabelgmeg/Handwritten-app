@@ -103,6 +103,10 @@ export function drawConnectionGuides(
   anchorY: number = BASELINE_Y,
   theme: CanvasTheme,
 ): void {
+  // Normal mode spacing is proportional (services/glyphLayout.ts), so a fixed
+  // cell has no meaning there; only connected script needs these guides.
+  if (scriptMode !== "connected") return;
+
   const { entryX, exitX } = getAnchorPositions(letterSpacing, scriptMode);
 
   const color    = scriptMode === "connected" ? theme.scriptLine : theme.guideBase;

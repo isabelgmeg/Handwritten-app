@@ -15,7 +15,14 @@
 
 import getStroke from "perfect-freehand";
 import type { Stroke, ScriptMode } from "@/types";
-import { FU_PER_PX, SIDE_BEARING_FU, SPACE_WIDTH } from "@/constants";
+import {
+  FU_PER_PX,
+  SIDE_BEARING_FU,
+  SPACE_WIDTH,
+  GLYPH_ADVANCE_WIDTH_BASE,
+  ADVANCE_CANVAS_WIDTH,
+  CONNECT_OVERLAP,
+} from "@/constants";
 import { ACCENT_BASE_MAP } from "@/constants/characters";
 import { getEffectivePoints } from "@/utils";
 import { getAnchorPositions } from "./drawingEngine";
@@ -37,8 +44,26 @@ export interface GlyphLayout {
   inkMaxX: number;
 }
 
+/**
+ * "proportional" is the current layout. "legacy" reproduces the fixed-cell
+ * layout used before v2, so community notes shared back then still render
+ * exactly as their authors saw them (their letter spacing was chosen for it).
+ */
+export type LayoutVersion = "proportional" | "legacy";
+
 /** Space width in canvas pixels */
 export const SPACE_ADVANCE_PX = SPACE_WIDTH / FU_PER_PX;
+const LEGACY_SPACE_ADVANCE_PX = (320 / GLYPH_ADVANCE_WIDTH_BASE) * ADVANCE_CANVAS_WIDTH;
+
+export function spaceAdvancePx(version: LayoutVersion = "proportional"): number {
+  return version === "legacy" ? LEGACY_SPACE_ADVANCE_PX : SPACE_ADVANCE_PX;
+}
+
+/** Pre-v2 fixed advance in canvas pixels; the glyph origin was canvas x = 0 */
+export function legacyAdvancePx(letterSpacing: number, scriptMode: ScriptMode): number {
+  const overlap = scriptMode === "connected" ? CONNECT_OVERLAP : 0;
+  return ((GLYPH_ADVANCE_WIDTH_BASE + letterSpacing - overlap) / GLYPH_ADVANCE_WIDTH_BASE) * ADVANCE_CANVAS_WIDTH;
+}
 
 /**
  * Strokes that make up a character. Accented characters combine the base
@@ -64,6 +89,7 @@ export function layoutGlyph(
   strokes: Stroke[],
   letterSpacing: number,
   scriptMode: ScriptMode,
+  version: LayoutVersion = "proportional",
 ): GlyphLayout | null {
   const outlines: StrokeOutline[] = [];
   let inkMinX = Infinity;
@@ -80,6 +106,10 @@ export function layoutGlyph(
   }
 
   if (!outlines.length || !isFinite(inkMinX)) return null;
+
+  if (version === "legacy") {
+    return { outlines, originPx: 0, advancePx: legacyAdvancePx(letterSpacing, scriptMode), inkMinX, inkMaxX };
+  }
 
   const spacingPx = letterSpacing / FU_PER_PX;
 
