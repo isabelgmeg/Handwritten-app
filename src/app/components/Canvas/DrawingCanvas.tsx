@@ -38,7 +38,7 @@ export function DrawingCanvas({
   return (
     <div
       className="canvas-wrapper"
-      style={{ maxWidth: CW, aspectRatio: `${CW} / ${CH}` }}
+      style={{ maxWidth: `min(${CW}px, var(--canvas-max-w, ${CW}px))`, aspectRatio: `${CW} / ${CH}` }}
     >
       <canvas
         ref={committedRef}
