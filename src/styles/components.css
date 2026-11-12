@@ -808,34 +808,13 @@
   .specimen {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .specimen-styles .seg-btn { padding: 0.5rem 0.375rem; }
-
-  .specimen-count {
-    font-size: 0.625rem;
-    font-style: normal;
-    font-weight: var(--font-weight-normal);
-    opacity: 0.6;
-  }
-
-  .specimen-glyphs {
-    display: flex;
-    flex-direction: column;
     gap: 1rem;
-  }
 
-  .specimen-glyph-row {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
-
-  .specimen-row-label {
-    font-family: var(--font-mono);
-    font-size: 0.625rem;
-    color: var(--muted-foreground);
+    /* Flat: the preview is a reading surface, not an input */
+    & .preview-wrapper {
+      box-shadow: none;
+      border-radius: 0;
+    }
   }
 
 

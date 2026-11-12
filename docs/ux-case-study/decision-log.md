@@ -169,6 +169,17 @@ These came from the designer's own walkthrough:
 - **Missing letters:** they now render in a readable grey (40%) instead of almost invisible, with a one-line legend.
 - **Learning:** a reference that shifts while you work stops being a reference. The value is a stable view to glance at while drawing, not a set of tools.
 
+## D14 · Iteration 3 of the specimen: one block, flat
+
+**Date:** 2026-11-12 · **Status:** ✅ on `feature/type-specimen` 🧪
+
+- **Feedback from the designer on D13:** too many sections; no soft-shadow styling on the inputs.
+- **Decision:**
+  - The phrase and every character are one continuous block on a single preview. The per-group sections and their labels are gone.
+  - The preview has no inset shadow. With one, it read as an input field, when it's a reading surface.
+  - The style switcher uses the same flat text tabs as the Draw view, with an accent circle on the active style, instead of a raised control.
+- **Why:** each section added a frame, a label and spacing between blocks, and all that chrome competed with the letters. The same tabs in Draw and Preview also make the two views feel like one tool.
+
 ---
 
 ## Open questions

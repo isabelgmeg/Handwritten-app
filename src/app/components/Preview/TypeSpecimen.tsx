@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FontStyle, ScriptMode, StyleGlyphs } from "@/types";
 import { CHAR_GROUPS, FONT_STYLES } from "@/constants";
 import { PreviewCanvas } from "../Canvas/PreviewCanvas";
+import { StyleCircle } from "../common/StyleCircle";
 
 /**
  * Type specimen — the Preview view. A fixed phrase plus every character, in
@@ -20,6 +21,8 @@ interface TypeSpecimenProps {
 }
 
 const PHRASE = "The quick brown fox jumps over the lazy dog";
+const ALL_SINGLE_CHARS = CHAR_GROUPS.map((g) => g.chars.filter((c) => c.length === 1).join("")).filter(Boolean);
+const SPECIMEN_TEXT = [PHRASE, "", ...ALL_SINGLE_CHARS].join("\n");
 
 export function TypeSpecimen({ glyphs, previewSize, letterSpacing, lineHeight, scriptMode }: TypeSpecimenProps) {
   const [style, setStyle] = useState<FontStyle>("regular");
@@ -27,44 +30,35 @@ export function TypeSpecimen({ glyphs, previewSize, letterSpacing, lineHeight, s
 
   return (
     <div className="specimen">
-      <div className="seg-control specimen-styles" role="tablist" aria-label="Preview style">
+      {/* Same flat style tabs as the Draw view */}
+      <div className="flex flex-wrap items-center justify-center gap-1.5" role="tablist" aria-label="Preview style">
         {FONT_STYLES.map(({ key, label }) => {
           const count = Object.values(glyphs[key]).filter((s) => s.length > 0).length;
+          const isActive = style === key;
           return (
             <button
               key={key}
               role="tab"
-              aria-selected={style === key}
+              aria-selected={isActive}
               onClick={() => setStyle(key)}
-              className={["seg-btn", style === key ? "seg-btn-active" : ""].join(" ")}
+              className={isActive ? "style-btn-active" : "style-btn"}
               style={{
                 fontStyle: key.includes("italic") ? "italic" : "normal",
-                fontWeight: key.includes("bold") ? 700 : 400,
+                fontWeight: isActive || key.includes("bold") ? 700 : 400,
               }}
             >
-              {label}
-              <span className="specimen-count">{count}</span>
+              {isActive && <StyleCircle />}
+              <span>{label}</span>
+              {count > 0 && <span className="text-[10px] opacity-50 ml-0.5">{count}</span>}
             </button>
           );
         })}
       </div>
 
-      <PreviewCanvas {...common} previewText={PHRASE} previewSize={previewSize} />
+      {/* One block: the phrase, then every character */}
+      <PreviewCanvas {...common} previewText={SPECIMEN_TEXT} previewSize={previewSize} />
 
-      <div className="specimen-glyphs">
-        {CHAR_GROUPS.map((group) => {
-          const text = group.chars.filter((c) => c.length === 1).join(" ");
-          if (!text) return null;
-          return (
-            <div key={group.label} className="specimen-glyph-row">
-              <span className="specimen-row-label">{group.label}</span>
-              <PreviewCanvas {...common} previewText={text} previewSize={Math.min(previewSize, 40)} />
-            </div>
-          );
-        })}
-      </div>
-
-      <p className="field-hint">Grey characters haven't been drawn in this style yet.</p>
+      <p className="field-hint text-center">Grey characters haven't been drawn in this style yet.</p>
     </div>
   );
 }
