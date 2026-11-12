@@ -17,7 +17,7 @@ A running record of design decisions, iterations and their reasons, kept for the
 
 ## D02 · Studio defaults: desktop panels open, drawn glyphs visible
 
-**Date:** 2026-11-12 · **Status:** ✅ (first commit on `v2`)
+**Date:** 2026-11-12 · **Status:** ✅ (first commit on `v2`); glyph thumbnails 🔁 reverted in D15
 
 - **Decision:**
   - On desktop, both side panels (characters, brush and settings) start open. On touch devices they start closed.
@@ -179,6 +179,14 @@ These came from the designer's own walkthrough:
   - The preview has no inset shadow. With one, it read as an input field, when it's a reading surface.
   - The style switcher uses the same flat text tabs as the Draw view, with an accent circle on the active style, instead of a raised control.
 - **Why:** each section added a frame, a label and spacing between blocks, and all that chrome competed with the letters. The same tabs in Draw and Preview also make the two views feel like one tool.
+
+## D15 · Revert the glyph thumbnails in the character panel
+
+**Date:** 2026-11-12 · **Status:** ✅ on `feature/type-specimen`
+
+- **Context:** D02 replaced each drawn letter in the character panel with a thumbnail of the user's drawing.
+- **Decision (designer):** revert. The panel shows plain typed characters again, and a dot still marks the drawn ones.
+- **Why:** _To be filled in by the designer._ Note: the Preview specimen (D12–D14) now shows every drawn letter in context, so the panel thumbnails duplicated it.
 
 ---
 
