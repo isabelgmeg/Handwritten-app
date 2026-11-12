@@ -8,23 +8,17 @@ import {
   CANVAS_HEIGHT,
   BASELINE_Y,
   CAP_Y,
-  GLYPH_ADVANCE_WIDTH_BASE,
-  ASCENDER,
-  DESCENDER,
+  FU_PER_PX,
   ITALIC_SHEAR,
 } from "@/constants";
 
 /**
- * Convert canvas coordinates to font units.
- * X maps canvas width → GLYPH_ADVANCE_WIDTH_BASE so the full canvas equals
- * one glyph cell; the template character at CANVAS_WIDTH/2 lands at 230 fu,
- * exactly the centre of the 460 fu advance.
+ * Convert canvas coordinates to font units with the uniform FU_PER_PX scale.
+ * originX is the canvas x that becomes x = 0 in the glyph (its origin, see
+ * services/glyphLayout.ts); the canvas baseline becomes y = 0.
  */
-export function canvasToFont(x: number, y: number): [number, number] {
-  return [
-    (x / CANVAS_WIDTH) * GLYPH_ADVANCE_WIDTH_BASE,
-    ASCENDER - (y / CANVAS_HEIGHT) * (ASCENDER - DESCENDER),
-  ];
+export function canvasToFont(x: number, y: number, originX = 0): [number, number] {
+  return [(x - originX) * FU_PER_PX, (BASELINE_Y - y) * FU_PER_PX];
 }
 
 /**

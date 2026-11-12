@@ -12,6 +12,16 @@ Suggested branch for each item in brackets.
 
 ### 1. Font export: spacing, metrics, metadata — `fix/font-metrics`
 
+**Status (2026-11-12):** spacing, baseline, size, proportions, vertical metrics, italic flags, cap/x-height and underline are fixed on `fix/font-metrics` (decision log D10). Still open:
+
+- **CFF FontBBox:** opentype.js writes `[0, yMin, ascender, advanceWidthMax]` and has no override. This is an upstream bug. Most renderers use the `head` bounding box instead.
+- **Coverage per style:** surface it in the download dialog (UI work).
+- **Kerning:** now possible, since the side bearings are right.
+- **Old community notes:** decide how notes saved with old-system letter spacing should render.
+- **Normal-mode cell guides:** the dashed lines on the canvas no longer mean anything.
+
+The original findings follow.
+
 A diagnostic of three exported fonts found the following.
 
 - **Spacing is monospace.** Every glyph uses the same advance: `GLYPH_ADVANCE_WIDTH_BASE + letterSpacing - overlap` ([fontGenerator.ts](src/services/fontGenerator.ts)). The ink fills about a third of its cell and sits toward the right. The hmtx left side bearing (LSB) is 0, but the real one is about 170. The preview ([previewEngine.ts](src/services/previewEngine.ts)) uses the same fixed advance, so words look gappy there too.

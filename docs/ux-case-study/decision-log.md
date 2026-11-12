@@ -111,6 +111,21 @@ These came from the designer's own walkthrough:
 - **Why:** `develop` stays shippable for urgent fixes, and each step of the redesign can be reviewed and explained on its own.
 - **Considered:** naming it `release-2`. `v2` was chosen because in common git practice `release/*` means a short-lived branch for final testing just before shipping.
 
+## D10 · Fix the exported fonts before redesigning Preview
+
+**Date:** 2026-11-12 · **Status:** ✅ on `fix/font-metrics` 🧪
+
+- **Order decision:** fix the fonts before redesigning the Preview view (backlog item 3). The biggest complaint about Preview was that "the text looks wrong", and the cause was the font maths, not the layout. Redesigning Preview first would have meant judging it with broken text.
+- **Research input:** a font diagnostic of three exported fonts (D03 #4). Tracing the code also found a problem the diagnostic missed: exported glyphs were squashed to about 53% of their drawn width. Horizontal and vertical used different scales, so the preview and the downloaded font never matched.
+- **Decision:** one shared layout used by both the on-screen preview and the font export, so "what you preview is what you download".
+  - **Same scale on both axes.** Glyphs keep the proportions they were drawn with.
+  - **Size.** The template's cap line becomes 700 units, a typical cap height, and the baseline becomes 0. Before, letters were small and floated about 60 units above the line.
+  - **Proportional spacing.** Each letter takes its own width plus 40 units of space on each side, so an "l" is narrow and a "W" is wide. Before, every letter had the same slot.
+  - **Line height.** One set of line metrics for the whole family, so line height is identical on Mac and Windows and doesn't change when switching styles.
+  - **Labelling.** Italic is now labelled as italic, so apps link it to Ctrl/Cmd+I. Underline values are set too.
+- **Verified:** fonts were generated from test strokes and read back. Every value from the diagnostic now checks out (see the PR).
+- **Deliberately not changed:** in connected-script mode letters keep a fixed width, because strokes have to meet at the anchors shown on the canvas.
+
 ---
 
 ## Open questions
@@ -118,3 +133,5 @@ These came from the designer's own walkthrough:
 - D01: why the landing + community experiment was rolled back (designer to fill in).
 - How do the Draw | Preview tabs feel on a real phone, and does the canvas fit on small screens such as the iPhone SE?
 - Should Preview show a sample of the font before anything is drawn?
+- D10: notes shared before the spacing fix were saved with letter spacing chosen under the old system, often negative to close the gaps. Should old notes render at spacing 0, or keep their stored value and risk letters touching?
+- D10: in normal mode the canvas still shows dashed "cell" lines from the old fixed-width system. They no longer mean anything. Should they be removed, or turned into a live width guide?

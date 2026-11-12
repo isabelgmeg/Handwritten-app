@@ -3,24 +3,22 @@
  * Renders preview of font with text
  */
 
-import getStroke from "perfect-freehand";
 import type { Stroke, ScriptMode } from "@/types";
 import type { CanvasTheme } from "@/utils/canvasTheme";
 import {
   CANVAS_HEIGHT,
-  ADVANCE_CANVAS_WIDTH,
   BASELINE_Y,
   CAP_TO_BASE,
-  GLYPH_ADVANCE_WIDTH_BASE,
-  SPACE_WIDTH,
   PREVIEW_PADDING_X,
   PREVIEW_PADDING_TOP,
-  CONNECT_OVERLAP,
 } from "@/constants";
-import { svgPathFromStroke, getEffectivePoints } from "@/utils";
+import { svgPathFromStroke } from "@/utils";
+import { layoutGlyph, resolveGlyphStrokes, SPACE_ADVANCE_PX, type GlyphLayout } from "./glyphLayout";
 
 /**
- * Render font preview with text
+ * Render font preview with text.
+ * Spacing comes from glyphLayout — the same maths the font export uses — so
+ * the preview matches the downloaded font.
  */
 export function renderPreview(
   canvas: HTMLCanvasElement,
@@ -34,20 +32,32 @@ export function renderPreview(
   paddingX: number = PREVIEW_PADDING_X,
 ): void {
   const ctx = canvas.getContext("2d")!;
+  // Canvas pixels → screen pixels: fontSizePx is the cap height
   const scale = fontSizePx / CAP_TO_BASE;
-
-  // Convert font units → screen pixels using ADVANCE_CANVAS_WIDTH (narrower than CANVAS_WIDTH)
-  const fuToPx = (scale * ADVANCE_CANVAS_WIDTH) / GLYPH_ADVANCE_WIDTH_BASE;
-  const overlap = scriptMode === "connected" ? CONNECT_OVERLAP : 0;
-  const advanceW = (GLYPH_ADVANCE_WIDTH_BASE + letterSpacing - overlap) * fuToPx;
-  const spaceW = SPACE_WIDTH * fuToPx;
+  const spaceW = SPACE_ADVANCE_PX * scale;
   // lineH: baseline-to-baseline distance — fontSizePx IS the cap height (one "em"),
   // so lineHeight multiplies that directly, matching CSS line-height semantics.
-  // (Previous bug: used CANVAS_HEIGHT * scale ≈ 1.82 × fontSizePx, inflating every
-  //  lineHeight value by ~1.82 and producing ~2× spacing at the default 1.15 setting.)
   const lineH = fontSizePx * lineHeight;
   const padX = paddingX;
   const padTop = PREVIEW_PADDING_TOP;
+  const fallbackFont = `${fontSizePx}px 'MyHandwriting','Amiri',serif`;
+
+  // Lay out each distinct character once (outlines are reused for drawing)
+  const layouts = new Map<string, GlyphLayout | null>();
+  const layoutFor = (ch: string) => {
+    if (!layouts.has(ch)) {
+      layouts.set(ch, layoutGlyph(resolveGlyphStrokes(ch, glyphs), letterSpacing, scriptMode));
+    }
+    return layouts.get(ch)!;
+  };
+  // Undrawn characters fall back to a system font, measured at its own width
+  const advanceFor = (ch: string) => {
+    if (ch === " ") return spaceW;
+    const layout = layoutFor(ch);
+    if (layout) return layout.advancePx * scale;
+    ctx.font = fallbackFont;
+    return ctx.measureText(ch).width;
+  };
 
   // Measure total height (word wrap)
   let x = padX;
@@ -60,7 +70,7 @@ export function renderPreview(
       lines++;
       continue;
     }
-    const w = ch === " " ? spaceW : advanceW;
+    const w = advanceFor(ch);
     if (ch !== " " && x + w > canvas.width - padX) {
       x = padX;
       lines++;
@@ -104,18 +114,18 @@ export function renderPreview(
       continue;
     }
 
-    if (ch !== " " && x + advanceW > canvas.width - padX) {
+    const advance = advanceFor(ch);
+    if (x + advance > canvas.width - padX) {
       x = padX;
       lineIdx++;
     }
 
     const baselineY = padTop + BASELINE_Y * scale + lineIdx * lineH;
-    const strokes = glyphs[ch];
+    const layout = layoutFor(ch);
 
-    if (!strokes || strokes.length === 0) {
-      // Fallback: render with the handwriting font instead of the template outline
+    if (!layout) {
       ctx.save();
-      ctx.font = `${fontSizePx}px 'MyHandwriting','Amiri',serif`;
+      ctx.font = fallbackFont;
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";
       ctx.fillStyle = theme.previewInk;
@@ -123,22 +133,21 @@ export function renderPreview(
       ctx.restore();
     } else {
       ctx.save();
-      ctx.translate(x, baselineY - BASELINE_Y * scale);
+      // Put the glyph origin (originPx on the canvas) at the pen position
+      ctx.translate(x - layout.originPx * scale, baselineY - BASELINE_Y * scale);
       ctx.scale(scale, scale);
 
-      for (const stroke of strokes) {
-        const outline = getStroke(getEffectivePoints(stroke), stroke.options);
-        if (outline.length < 4) continue;
-
+      for (const { stroke, points } of layout.outlines) {
+        const path = new Path2D(svgPathFromStroke(points));
         ctx.save();
         ctx.globalAlpha = stroke.opacity;
         ctx.fillStyle = theme.previewInk;
-        ctx.fill(new Path2D(svgPathFromStroke(outline)));
+        ctx.fill(path);
 
         if (stroke.brushType === "ballpoint") {
           ctx.globalAlpha = stroke.opacity * 0.12;
           ctx.fillStyle = theme.previewInkFringe;
-          ctx.fill(new Path2D(svgPathFromStroke(outline)));
+          ctx.fill(path);
         }
 
         ctx.restore();
@@ -147,6 +156,6 @@ export function renderPreview(
       ctx.restore();
     }
 
-    x += advanceW;
+    x += advance;
   }
 }
