@@ -600,9 +600,9 @@ export default function App() {
                 })}
               </div>
 
-              {/* Char nav */}
+              {/* Char nav. From md up the arrows sit on the canvas's sides instead (see below). */}
               <div className="flex items-center gap-4">
-                <button onClick={() => navigateChar(-1)} className="btn btn-icon-md btn-ghost">
+                <button onClick={() => navigateChar(-1)} className="btn btn-icon-md btn-ghost md:hidden" aria-label="Previous character">
                   <ChevronLeft size={15} />
                 </button>
                 <div className="text-center w-16">
@@ -611,7 +611,7 @@ export default function App() {
                     {currentStrokes.length} stroke{currentStrokes.length !== 1 ? "s" : ""}
                   </p>
                 </div>
-                <button onClick={() => navigateChar(1)} className="btn btn-icon-md btn-ghost">
+                <button onClick={() => navigateChar(1)} className="btn btn-icon-md btn-ghost md:hidden" aria-label="Next character">
                   <ChevronRight size={15} />
                 </button>
               </div>
@@ -625,7 +625,12 @@ export default function App() {
                 </div>
               )}
 
-              {/* Drawing canvas */}
+              {/* Drawing canvas, with the char arrows on its sides from md up */}
+              <div className="flex items-center gap-4 w-full justify-center" style={{ maxWidth: `calc(${CW}px + 6rem)` }}>
+              <button onClick={() => navigateChar(-1)} className="btn btn-icon-md btn-ghost hidden md:inline-flex shrink-0" aria-label="Previous character">
+                <ChevronLeft size={15} />
+              </button>
+              <div className="flex-1 min-w-0 flex justify-center">
               <DrawingCanvas
                 committedRef={committedRef}
                 activeRef={activeRef}
@@ -638,6 +643,11 @@ export default function App() {
                 cursorStyle={anchorCursor}
                 drawMode={drawMode}
               />
+              </div>
+              <button onClick={() => navigateChar(1)} className="btn btn-icon-md btn-ghost hidden md:inline-flex shrink-0" aria-label="Next character">
+                <ChevronRight size={15} />
+              </button>
+              </div>
 
               {/* Actions */}
               <div className="flex items-center gap-2">

@@ -527,6 +527,18 @@
     letter-spacing: -0.02em;
   }
 
+  /* Drawn glyph thumbnail — replaces the typed label once a char is drawn.
+     Full ink colour so thin strokes stay legible on the inset state. */
+  .char-btn-glyph {
+    display: block;
+    width: 2rem;
+    height: 2rem;
+    margin-inline: auto;
+    color: var(--foreground);
+    overflow: hidden;
+    pointer-events: none;
+  }
+
   /* Drawn indicator dot — shown on drawn non-active chars */
   .char-btn-dot {
     position: absolute;

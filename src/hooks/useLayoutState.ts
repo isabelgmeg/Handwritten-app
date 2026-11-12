@@ -14,9 +14,10 @@ function useIsTouchDevice() {
 }
 
 export function useLayoutState() {
-  const [leftOpen, setLeftOpen] = useState(false);
-  const [rightOpen, setRightOpen] = useState(false);
   const isTouch = useIsTouchDevice();
+  // Desktop starts with both side panels open; touch devices start closed.
+  const [leftOpen, setLeftOpen] = useState(!isTouch);
+  const [rightOpen, setRightOpen] = useState(!isTouch);
 
   const toggleLeft = useCallback(() => {
     setLeftOpen(v => {
