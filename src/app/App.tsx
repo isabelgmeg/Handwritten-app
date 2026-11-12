@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import getStroke from "perfect-freehand";
-import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Pencil, Hand } from "lucide-react";
+import { ChevronLeft, ChevronRight, Undo2, Trash2, AlignLeft, Settings, Pencil, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 // Types
@@ -44,7 +44,6 @@ import {
 
 // Components
 import { Header } from "./components/Panels/Header";
-import { LandingPage } from "./components/LandingPage";
 import { AboutPage } from "./components/AboutPage";
 import { StyleCircle } from "./components/common/StyleCircle";
 import { LeftPanel } from "./components/Panels/LeftPanel";
@@ -125,22 +124,15 @@ export default function App() {
     track("page_view", { path: location.pathname });
   }, [location.pathname]);
 
-  // Draw mode — on touch devices, off by default so scroll works
-  const [drawMode, setDrawMode] = useState(false);
-
-  // Discoverability hint — pulse the draw-mode toggle until the user taps it
-  const [lockHintSeen, setLockHintSeen] = useState(false);
-  const [canvasInView, setCanvasInView] = useState(false);
-  useEffect(() => {
-    const el = committedRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setCanvasInView(entry.isIntersecting),
-      { threshold: 0.6 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
+  // Studio view — below the side-by-side width only one view shows at a time.
+  // The canvas always owns touch input: in Draw view nothing else needs to
+  // scroll, so there's no draw/scroll mode to toggle.
+  const [studioView, setStudioView] = useState<"draw" | "preview">("draw");
+  const selectStudioView = (view: "draw" | "preview") => {
+    setStudioView(view);
+    window.scrollTo({ top: 0 });
+    track("studio_view_selected", { view });
+  };
 
   // Download dialog state
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
@@ -158,7 +150,6 @@ export default function App() {
     ? (glyphs[canvasState.activeStyle][accentBaseChar] ?? [])
     : [];
   const drawnCount = Object.values(glyphs[canvasState.activeStyle]).filter((s) => s.length > 0).length;
-  const showLockHint = !drawMode && !lockHintSeen && canvasInView && drawnCount === 0;
   const totalDrawnCount = Object.values(glyphs).reduce(
     (sum, styleGlyphs) => sum + Object.values(styleGlyphs).filter((s) => s.length > 0).length,
     0
@@ -513,12 +504,8 @@ export default function App() {
             refreshKey={communityRefreshKey}
           />
         } />
-        <Route path="/" element={
-          <>
-            {/* Landing content sits above the studio in one scroll */}
-            <LandingPage onEnterStudio={() => {}} hideCta />
-          </>
-        } />
+        {/* "/" is the studio, rendered below (always mounted) */}
+        <Route path="/" element={null} />
       </Routes>
 
       {/* Studio — always mounted so drawing state is preserved across nav */}
@@ -567,11 +554,46 @@ export default function App() {
             }}
           />
 
-          <main className="flex-1 flex flex-col min-h-0 overflow-y-auto bg-background min-w-0">
-            {/* Drawing area */}
+          {/* Side panels are fixed overlays; on large screens pad the studio so
+              the open panels don't cover it. The container query below then
+              decides side-by-side vs. Draw | Preview from the space left over. */}
+          <main
+            className={[
+              "studio-main flex-1 flex flex-col min-h-0 bg-background min-w-0 @container",
+              layoutState.leftOpen ? "lg:pl-[272px]" : "",
+              layoutState.rightOpen ? "lg:pr-[272px]" : "",
+            ].join(" ")}
+          >
+            {/* Draw | Preview — only when there's no room for both side by side */}
+            <div className="studio-view-bar @4xl:hidden">
+              <div className="studio-view-switch" role="tablist" aria-label="Studio view">
+                {([
+                  { view: "draw",    label: "Draw",    Icon: Pencil },
+                  { view: "preview", label: "Preview", Icon: Eye },
+                ] as const).map(({ view, label, Icon }) => (
+                  <button
+                    key={view}
+                    role="tab"
+                    aria-selected={studioView === view}
+                    onClick={() => selectStudioView(view)}
+                    className={["studio-view-btn", studioView === view ? "studio-view-btn--active" : ""].join(" ")}
+                  >
+                    <Icon size={13} /> {label}
+                    {view === "preview" && drawnCount > 0 && (
+                      <span className="studio-view-count">{drawnCount}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="studio-layout">
+            {/* Draw view */}
             <div
-              className="flex-shrink-0 flex flex-col items-center justify-center px-4 sm:px-6 pt-4 pb-10 sm:pb-2 gap-3 min-h-[calc(100dvh-var(--header-height,53px))] sm:min-h-0"
-              style={{ touchAction: drawMode ? "none" : "auto" }}
+              className={[
+                "studio-draw flex-col items-center justify-center px-4 sm:px-6 pt-2 pb-6 gap-3",
+                studioView === "draw" ? "flex" : "hidden @4xl:flex",
+              ].join(" ")}
             >
 
               {/* Style selector */}
@@ -616,6 +638,13 @@ export default function App() {
                 </button>
               </div>
 
+              {/* First-run hint */}
+              {totalDrawnCount === 0 && !accentBaseChar && (
+                <p className="text-xs text-muted-foreground italic text-center">
+                  Draw this letter to start your font.
+                </p>
+              )}
+
               {/* Accent mode indicator */}
               {accentBaseChar && (
                 <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-muted text-muted-foreground text-[11px]">
@@ -641,7 +670,6 @@ export default function App() {
                 dotPos={lazyDot.dotPos}
                 dotRadius={dotRadius}
                 cursorStyle={anchorCursor}
-                drawMode={drawMode}
               />
               </div>
               <button onClick={() => navigateChar(1)} className="btn btn-icon-md btn-ghost hidden md:inline-flex shrink-0" aria-label="Next character">
@@ -651,23 +679,6 @@ export default function App() {
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                {/* Draw mode toggle — only visible on touch devices */}
-                <button
-                  onClick={() => {
-                    setDrawMode(v => !v);
-                    setLockHintSeen(true);
-                  }}
-                  className={[
-                    "btn btn-sm gap-1.5 [@media(pointer:fine)]:hidden",
-                    drawMode ? "btn-neu-accent" : "btn-ghost",
-                    showLockHint ? "lock-hint-pulse" : "",
-                  ].join(" ")}
-                  title={drawMode ? "Switch to scroll mode" : "Switch to draw mode"}
-                >
-                  {drawMode ? <Pencil size={12} /> : <Hand size={12} />}
-                  {drawMode ? "Drawing" : "Scroll"}
-                </button>
-
                 <button
                   onClick={undoStroke}
                   disabled={currentStrokes.length === 0}
@@ -685,8 +696,13 @@ export default function App() {
               </div>
             </div>
 
-            {/* Preview section */}
-            <div className="flex-shrink-0 w-full max-w-2xl mx-auto px-4 mb-4 space-y-8">
+            {/* Preview view */}
+            <div
+              className={[
+                "studio-preview w-full max-w-2xl mx-auto px-4 pt-2 pb-10 space-y-8",
+                studioView === "preview" ? "block" : "hidden @4xl:block",
+              ].join(" ")}
+            >
 
               {/* Editable fields — sit above the card */}
               <div className="note-inputs" style={{ marginBottom: '120px' }}>
@@ -738,9 +754,10 @@ export default function App() {
 
               {drawnCount === 0 && (
                 <p className="text-xs text-muted-foreground text-center italic">
-                  Draw some characters above — they will appear in your font.
+                  Draw some characters — they will appear here as your font.
                 </p>
               )}
+            </div>
             </div>
           </main>
 

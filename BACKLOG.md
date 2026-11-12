@@ -2,6 +2,10 @@
 
 ## v2 redesign (started 2026-11-12)
 
+**Objective:** make Love Letter Studio feel like designing your own typeface. The canvas is the core feature, and seeing your work-in-progress font is the main goal. v2 makes the studio the home page, pairs Draw with a live Preview, exports fonts that are technically sound, and moves toward publishing your handwriting as a font.
+
+**This is a UX case study.** Log every design decision and iteration in [docs/ux-case-study/decision-log.md](docs/ux-case-study/decision-log.md).
+
 All v2 work branches off `v2`, which was created from `develop`. Each feature gets its own PR into `v2`, and `v2` merges into `develop` once it holds together as a whole. Merge `develop` into `v2` now and then so hotfixes reach it.
 
 Suggested branch for each item in brackets.

@@ -115,6 +115,89 @@
     .lock-hint-pulse { animation: none; }
   }
 
+  /* ═══════════════════════════════════════════════════════════════════════════
+     STUDIO LAYOUT — Draw | Preview
+     Below the @4xl container width: one view at a time, chosen by the tab
+     switch. From @4xl up: side by side, draw column sticky.
+  ═══════════════════════════════════════════════════════════════════════════ */
+
+  .studio-layout {
+    display: flex;
+    flex-direction: column;
+
+    @container (min-width: 56rem) {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+      gap: 1rem;
+    }
+  }
+
+  .studio-draw {
+    /* Mobile: fill the screen under the tab bar; the canvas scales to fit
+       the height (--canvas-max-w) so Draw view never needs to scroll. */
+    min-height: calc(100dvh - var(--header-height, 53px) - 3.25rem);
+    --canvas-max-w: max(12rem, calc((100dvh - var(--header-height, 53px) - 17rem) * 0.875));
+
+    @container (min-width: 56rem) {
+      position: sticky;
+      top: var(--header-height, 53px);
+      min-height: calc(100dvh - var(--header-height, 53px));
+      --canvas-max-w: 420px;
+    }
+  }
+
+  .studio-preview {
+    @container (min-width: 56rem) { padding-top: 3.5rem; }
+  }
+
+  /* Tab bar under the header — sits between the fixed panel triggers */
+  .studio-view-bar {
+    position: sticky;
+    top: var(--header-height, 53px);
+    z-index: 30;
+    display: flex;
+    justify-content: center;
+    padding: 0.625rem 3.5rem 0.375rem;
+    background-color: var(--background);
+  }
+
+  .studio-view-switch {
+    display: inline-flex;
+    gap: 0.125rem;
+    padding: 0.1875rem;
+    border-radius: 999px;
+    background: var(--neu-gradient-pressed);
+    box-shadow: var(--shadow-neu-inset-xs);
+  }
+
+  .studio-view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.4375rem 1rem;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    font-size: 0.8125rem;
+    font-weight: var(--font-weight-medium);
+    line-height: 1;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    transition: color var(--transition-fast), background-color var(--transition-fast), box-shadow var(--transition-fast);
+  }
+
+  .studio-view-btn--active {
+    background-color: var(--background);
+    color: var(--accent);
+    box-shadow: var(--shadow-neu-raised-sm);
+  }
+
+  .studio-view-count {
+    font-size: 0.625rem;
+    opacity: 0.6;
+  }
+
   /* Dark CTA — editorial, no neumorphism */
   .btn-primary {
     background-color: var(--foreground);

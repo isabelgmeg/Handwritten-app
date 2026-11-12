@@ -2,7 +2,50 @@ import { LogoMark } from "./common/LogoMark";
 
 export function AboutPage() {
   return (
-    <div className="min-h-[calc(100vh-var(--header-height,53px))] bg-background text-foreground flex flex-col items-center justify-center px-6 py-12 sm:py-20">
+    <div className="min-h-[calc(100vh-var(--header-height,53px))] bg-background text-foreground flex flex-col items-center px-6 py-12 sm:py-20">
+
+      {/* ── Manifesto: overlapping typographic stack (moved here from the old home hero) ── */}
+      <section className="w-full max-w-4xl mx-auto px-2 pb-8 text-center" style={{ isolation: "isolate" }}>
+        {/* Grid trick: both elements share the same cell so they center on each other */}
+        <div style={{ display: "grid", placeItems: "center" }}>
+          <h1
+            className="leading-none mix-blend-multiply select-none"
+            style={{
+              gridArea: "1 / 1",
+              fontFamily: "var(--font-script)",
+              fontSize: "clamp(4rem, 11vw, 9rem)",
+              color: "var(--color-mark-vivid)",
+              lineHeight: 1,
+              width: "100%",
+            }}
+          >
+            A love letter in times of AI
+          </h1>
+          <p
+            className="mix-blend-multiply"
+            style={{
+              gridArea: "1 / 1",
+              fontFamily: "var(--font-display)",
+              fontSize: "clamp(1.3rem, 2.8vw, 2.2rem)",
+              color: "var(--color-text-base)",
+              lineHeight: 1.25,
+              maxWidth: "32rem",
+              zIndex: 10,
+            }}
+          >
+            Anyone feels like we are losing some of the expression,
+            creativity and warmth that makes us human?
+          </p>
+        </div>
+      </section>
+
+      <p
+        className="text-muted-foreground text-center px-8 mb-16 max-w-sm"
+        style={{ fontFamily: "var(--font-script)", fontSize: "clamp(0.95rem, 1.6vw, 1.2rem)" }}
+      >
+        Made from my own handwriting, sweat and ADHD
+      </p>
+
       <div className="w-full max-w-md flex flex-col items-center gap-10 sm:gap-12">
 
         <img
@@ -14,12 +57,12 @@ export function AboutPage() {
         />
 
         <div className="flex flex-col items-center gap-5 text-center">
-          <h1
+          <h2
             className="text-foreground leading-tight"
             style={{ fontFamily: "var(--font-script)", fontSize: "clamp(2rem, 6vw, 2.8rem)" }}
           >
             perpetually wip.
-          </h1>
+          </h2>
 
           <p
             className="leading-relaxed max-w-[30ch]"
