@@ -706,15 +706,10 @@ export default function App() {
 
               <TypeSpecimen
                 glyphs={glyphs}
-                activeStyle={canvasState.activeStyle}
-                currentChar={canvasState.currentChar}
                 previewSize={previewState.previewSize}
-                onPreviewSizeChange={previewState.setPreviewSize}
                 letterSpacing={previewState.letterSpacing}
                 lineHeight={previewState.lineHeight}
                 scriptMode={canvasState.scriptMode}
-                testerText={previewState.previewText}
-                onTesterTextChange={previewState.setPreviewText}
               />
 
               {drawnCount === 0 && (

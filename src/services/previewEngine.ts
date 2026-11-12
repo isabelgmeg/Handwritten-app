@@ -140,8 +140,8 @@ export function renderPreview(
       ctx.font = fallbackFont;
       ctx.textBaseline = "alphabetic";
       ctx.textAlign = "left";
-      // Faint, so undrawn characters stand out as missing
-      ctx.fillStyle = theme.placeholderFill;
+      // Greyed, so undrawn characters read as "not drawn yet"
+      ctx.fillStyle = theme.previewMissing;
       ctx.fillText(ch, x, baselineY);
       ctx.restore();
     } else {

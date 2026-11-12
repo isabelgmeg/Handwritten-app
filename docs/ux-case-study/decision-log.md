@@ -152,6 +152,23 @@ These came from the designer's own walkthrough:
 - **Why this pattern:** it's what designers already know from type foundries, so it needs no explanation. Each block answers one testing question: spacing, coverage, size, real text.
 - **Deferred:** where the community note's message, To and Date fields go now. Sharing still works from the Community page.
 
+## D13 · Iteration 2 of the specimen: simpler and stable
+
+**Date:** 2026-11-12 · **Status:** ✅ on `feature/type-specimen` 🧪
+
+- **Feedback from the designer on D12:**
+  - "Nothing shows." Likely cause: letters not drawn yet rendered at 18% opacity. Drawings aren't kept across reloads, so on a fresh page the whole specimen was close to invisible.
+  - There should be no inputs, just a preview.
+  - The preview shouldn't change as the user moves to a new letter.
+- **Decision:** cut the specimen down to a style switcher, one fixed phrase, and every character grouped as in the character panel. Removed:
+  - the type tester input
+  - the per-letter spacing test, which changed with every letter
+  - the waterfall
+  - the second pangram
+  - the size slider (font size is still in the settings panel)
+- **Missing letters:** they now render in a readable grey (40%) instead of almost invisible, with a one-line legend.
+- **Learning:** a reference that shifts while you work stops being a reference. The value is a stable view to glance at while drawing, not a set of tools.
+
 ---
 
 ## Open questions

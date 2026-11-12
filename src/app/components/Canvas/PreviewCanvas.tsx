@@ -45,7 +45,7 @@ export function PreviewCanvas({
     const { previewText, glyphs, previewSize, letterSpacing, lineHeight, scriptMode, inkColor, paddingX, layoutVersion } = paramsRef.current;
     const base = getCanvasTheme();
     const theme = inkColor
-      ? { ...base, previewInk: inkColor, previewInkFringe: inkColor, placeholderFill: inkColor }
+      ? { ...base, previewInk: inkColor, previewInkFringe: inkColor, placeholderFill: inkColor, previewMissing: inkColor }
       : base;
     renderPreview(canvas, previewText, glyphs, previewSize, letterSpacing, theme, scriptMode, lineHeight, paddingX, layoutVersion);
   }, []);

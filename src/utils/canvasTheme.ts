@@ -16,6 +16,7 @@ export interface CanvasTheme {
   previewRule:        string;
   placeholderLine:    string;
   placeholderFill:    string;
+  previewMissing:     string;
 }
 
 export function getCanvasTheme(): CanvasTheme {
@@ -39,5 +40,6 @@ export function getCanvasTheme(): CanvasTheme {
     previewRule:       get("--canvas-preview-rule"),
     placeholderLine:   get("--canvas-placeholder-line"),
     placeholderFill:   get("--canvas-placeholder-fill"),
+    previewMissing:    get("--canvas-preview-missing"),
   };
 }
