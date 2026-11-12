@@ -52,7 +52,11 @@ The hero above the studio caused the scroll and touch problems: the canvas had n
 - **Desktop:** the canvas and a live preview sit side by side, and the preview updates on every stroke.
 - Keep the project's voice: a strong About link in the header, a first-visit welcome line, warm empty states. Show a sample in Preview when nothing has been drawn yet.
 
-### 3. Preview view content — `feature/preview-view`
+### 3. Preview view content — `feature/type-specimen`
+
+**Status (2026-11-12):** the v0 type specimen replaces the note card (decision log D12): style switcher, size, type tester, live spacing test, glyph set, pangrams and waterfall. Next: refine it, and decide where note writing and sharing live.
+
+Original problems with the note preview:
 
 The current note preview, rebuilt as the Preview view's content. Confirmed problems with it today:
 

@@ -49,7 +49,7 @@ import { StyleCircle } from "./components/common/StyleCircle";
 import { LeftPanel } from "./components/Panels/LeftPanel";
 import { RightPanel } from "./components/Panels/RightPanel";
 import { DrawingCanvas } from "./components/Canvas/DrawingCanvas";
-import { LoveLetterPreview } from "./components/Canvas/LoveLetterPreview";
+import { TypeSpecimen } from "./components/Preview/TypeSpecimen";
 import { DownloadDialog } from "./components/common/DownloadDialog";
 import { ShareNoteDialog } from "./components/common/ShareNoteDialog";
 import { CommunityPage } from "./components/CommunityPage";
@@ -699,57 +699,22 @@ export default function App() {
             {/* Preview view */}
             <div
               className={[
-                "studio-preview w-full max-w-2xl mx-auto px-4 pt-2 pb-10 space-y-8",
+                "studio-preview w-full max-w-2xl mx-auto px-4 pt-2 pb-10 space-y-6",
                 studioView === "preview" ? "block" : "hidden @4xl:block",
               ].join(" ")}
             >
 
-              {/* Editable fields — sit above the card */}
-              <div className="note-inputs" style={{ marginBottom: '120px' }}>
-                <div className="note-input-row">
-                  <div className="note-input-group">
-                    <span className="note-input-label">To</span>
-                    <input
-                      type="text"
-                      value={previewState.toField}
-                      onChange={(e) => previewState.setToField(e.target.value)}
-                      className="note-input-field"
-                      placeholder="Myself"
-                    />
-                  </div>
-                  <div className="note-input-group">
-                    <span className="note-input-label">Date</span>
-                    <input
-                      type="text"
-                      value={previewState.dateField}
-                      onChange={(e) => previewState.setDateField(e.target.value)}
-                      className="note-input-field"
-                      placeholder="Today"
-                    />
-                  </div>
-                </div>
-                <div className="note-input-group">
-                  <span className="note-input-label">Message</span>
-                  <textarea
-                    value={previewState.previewText}
-                    onChange={(e) => previewState.setPreviewText(e.target.value)}
-                    rows={2}
-                    className="textarea-field"
-                    placeholder="Write something to preview your font…"
-                  />
-                </div>
-              </div>
-
-              {/* The letter card */}
-              <LoveLetterPreview
-                toName={previewState.toField}
-                dateText={previewState.dateField}
-                bodyText={previewState.previewText}
-                glyphs={glyphs[canvasState.activeStyle]}
+              <TypeSpecimen
+                glyphs={glyphs}
+                activeStyle={canvasState.activeStyle}
+                currentChar={canvasState.currentChar}
                 previewSize={previewState.previewSize}
+                onPreviewSizeChange={previewState.setPreviewSize}
                 letterSpacing={previewState.letterSpacing}
                 lineHeight={previewState.lineHeight}
                 scriptMode={canvasState.scriptMode}
+                testerText={previewState.previewText}
+                onTesterTextChange={previewState.setPreviewText}
               />
 
               {drawnCount === 0 && (

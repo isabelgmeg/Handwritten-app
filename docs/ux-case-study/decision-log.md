@@ -136,6 +136,22 @@ These came from the designer's own walkthrough:
 - **Considered:** drawing old notes at spacing 0. Rejected because it would still change how they look.
 - **Second decision (designer):** remove the dashed "cell" lines from the canvas in normal mode. They showed the old fixed letter width, which no longer exists. Connected script still shows its entry and exit anchors.
 
+## D12 · Replace the note card with a type specimen
+
+**Date:** 2026-11-12 · **Status:** ✅ v0 on `feature/type-specimen` 🧪
+
+- **Context:** the Preview view showed a single love-letter note. It answered "what does a message look like?" but not the questions a person asks while designing a font: is the spacing even, which letters are missing or broken, how does it hold up at different sizes?
+- **Decision (designer):** replace the note with an established type-specimen pattern, the kind type foundries and font sites use. It doesn't need to be perfect yet; it'll be refined later.
+- **What the v0 contains:**
+  - **Toolbar:** a style switcher (Regular, Bold, Italic, Bold Italic, each with a count of drawn letters) and a size slider. It follows the style being drawn, but the user can switch to compare.
+  - **Type tester:** free text the user types.
+  - **Spacing test** for the letter currently on the canvas, using the designers' standard strings (`nnannoaoo` for lowercase, `HHAHHOAOO` for capitals). It updates as the user moves through the alphabet.
+  - **Glyph set:** uppercase, lowercase, accented letters, numbers and punctuation. Letters not yet drawn appear faint, so gaps are easy to spot.
+  - **Pangrams:** English and Spanish.
+  - **Waterfall:** one phrase at 16, 24, 40 and 64px.
+- **Why this pattern:** it's what designers already know from type foundries, so it needs no explanation. Each block answers one testing question: spacing, coverage, size, real text.
+- **Deferred:** where the community note's message, To and Date fields go now. Sharing still works from the Community page.
+
 ---
 
 ## Open questions
@@ -143,3 +159,4 @@ These came from the designer's own walkthrough:
 - D01: why the landing + community experiment was rolled back (designer to fill in).
 - How do the Draw | Preview tabs feel on a real phone, and does the canvas fit on small screens such as the iPhone SE?
 - Should Preview show a sample of the font before anything is drawn?
+- D12: where should writing and sharing a community note live now that Preview is a specimen?
