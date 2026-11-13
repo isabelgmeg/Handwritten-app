@@ -121,6 +121,11 @@
      switch. From @4xl up: side by side, draw column sticky.
   ═══════════════════════════════════════════════════════════════════════════ */
 
+  /* Wide screens: one centred frame — the style switcher across the top,
+     then two equal columns. The frame's side padding clears the fixed panel
+     and settings buttons, so the columns mirror each other around the middle
+     whether or not the side panels are open. The whole block is centred in
+     the viewport, and the two columns are centred against each other. */
   .studio-layout {
     display: flex;
     flex-direction: column;
@@ -128,27 +133,55 @@
     @container (min-width: 56rem) {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      align-items: start;
-      gap: 1rem;
+      align-content: center;
+      align-items: center;
+      column-gap: 3rem;
+      row-gap: 0.75rem;
+      width: 100%;
+      max-width: 76rem;
+      margin-inline: auto;
+      padding: 1.5rem 3.5rem;
+      min-height: calc(100dvh - var(--header-height, 53px));
     }
   }
 
   .studio-draw {
     /* Mobile: fill the screen under the tab bar; the canvas scales to fit
        the height (--canvas-max-w) so Draw view never needs to scroll. */
+    justify-content: center;
+    padding-block: 0.5rem 1.5rem;
     min-height: calc(100dvh - var(--header-height, 53px) - 3.25rem);
     --canvas-max-w: max(12rem, calc((100dvh - var(--header-height, 53px) - 17rem) * 0.875));
 
+    /* Wide: stays in view while a tall preview scrolls */
     @container (min-width: 56rem) {
       position: sticky;
-      top: var(--header-height, 53px);
-      min-height: calc(100dvh - var(--header-height, 53px));
+      top: calc(var(--header-height, 53px) + 1rem);
+      min-height: 0;
+      padding-block: 0;
       --canvas-max-w: 420px;
     }
   }
 
   .studio-preview {
-    @container (min-width: 56rem) { padding-top: 3.5rem; }
+    padding-block: 0.5rem 2.5rem;
+    @container (min-width: 56rem) { padding-block: 0; }
+  }
+
+  /* One style selector for both views. Wide: the frame's first row, centred
+     over the gap between the columns, so it reads as controlling both. */
+  .studio-style-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 0.75rem 3.5rem 0.25rem;
+
+    @container (min-width: 56rem) {
+      grid-column: 1 / -1;
+      padding: 0 0 0.75rem;
+    }
   }
 
   /* Tab bar under the header — sits between the fixed panel triggers */
@@ -803,6 +836,96 @@
       box-shadow: none;
       border-radius: 0;
     }
+  }
+
+  /* Phrase input: the same inset field as the rest of the app */
+  .specimen-input {
+    width: 100%;
+    font-size: 0.875rem;
+    font-family: var(--font-display);
+    color: var(--accent);
+    background-color: var(--background);
+    border: none;
+    border-radius: var(--radius);
+    padding: 0.5rem 0.875rem;
+    outline: none;
+    box-shadow: var(--shadow-neu-inset-sm);
+    transition: box-shadow var(--transition-fast);
+
+    &::placeholder { color: var(--color-text-ghost); }
+    &:focus-visible {
+      box-shadow: var(--shadow-neu-inset-sm), 0 0 0 2px var(--color-mark-ghost);
+    }
+  }
+
+  /* Phrase + character set read as one sheet */
+  .specimen-sheet {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* Click-to-draw: a soft cell behind the character under the pointer */
+  .preview-hover-cell {
+    position: absolute;
+    border-radius: var(--radius-sm);
+    background-color: oklch(from var(--color-mark-base) l c h / 0.1);
+    pointer-events: none;
+  }
+
+  /* Before anything is drawn in the style */
+  .specimen-empty {
+    padding: 3rem 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: center;
+  }
+
+  .specimen-empty-title {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    color: var(--accent);
+  }
+
+  .specimen-empty-body {
+    max-width: 26rem;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    color: var(--muted-foreground);
+  }
+
+  /* Legend on the left, coverage + guides toggle on the right */
+  .specimen-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding-inline: 0.875rem;
+    font-size: 0.6875rem;
+    color: var(--color-text-ghost);
+  }
+
+  .specimen-footer-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    color: var(--muted-foreground);
+  }
+
+  .specimen-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .specimen-coverage {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
   }
 
 

@@ -188,11 +188,172 @@ These came from the designer's own walkthrough:
 - **Decision (designer):** revert. The panel shows plain typed characters again, and a dot still marks the drawn ones.
 - **Why:** _To be filled in by the designer._ Note: the Preview specimen (D12–D14) now shows every drawn letter in context, so the panel thumbnails duplicated it.
 
+## D16 · Iteration 4 of the specimen: a working proof, not a display
+
+**Date:** 2026-11-12 · **Status:** ✅ on `feature/type-specimen` 🧪
+
+- **Context:** asked for a senior UX review of the Preview panel against type-specimen practice. The review proposed:
+  1. spacing control strings (`HOHOHOH`, `nonono`)
+  2. real words and a short paragraph
+  3. clicking a letter in the specimen to open it on the canvas
+  4. optional metric guide lines
+  5. a coverage count
+- **Designer's call:**
+  - Ideas 1–2 were set aside: the product is not meant for professional type designers, so foundry testing conventions are the wrong register.
+  - In their place, an optional input lets people preview **a phrase of their own**. This reverses part of D13 ("no inputs"). The difference: the input is optional, the pangram is the fallback, and the character set below stays fixed, so the specimen is still a stable reference.
+  - Ideas 3, 4 and 5 were accepted.
+- **What was built:**
+  - **Own phrase:** a flat, underline-only input above the specimen. It replaces the first line; when it's empty, the pangram shows.
+  - **Click to draw:** clicking any character in the specimen switches the canvas to that letter and style. On mobile, it also switches to the Draw view. This closes the loop from spotting a problem to fixing it. Keyboard users still select letters through the character panel.
+  - **Guides:** an off-by-default toggle that adds dashed cap-height and x-height lines to every line of the specimen, so letters that sit low or run short stand out.
+  - **Coverage:** "42 / 95 drawn" for the selected style, next to the toggle. It replaces the small per-tab counts, so the number appears once.
+- **Why:** _To be filled in by the designer._
+
+## D17 · Later: automatic styles from Regular
+
+**Date:** 2026-11-12 · **Status:** 💡 backlog → specced in D23
+
+- **Idea (designer):** once someone has drawn Regular, generate Bold, Italic and Bold Italic automatically. They can still adjust the generated styles or redraw them by hand.
+- **Why it matters:** today, every style means drawing the whole set again, which is the main reason coverage is uneven across styles (see D10).
+- Parked for later. Logged here so the specimen's style tabs and coverage count are designed with it in mind.
+
+## D18 · Iteration 5: one style switcher, aligned columns, a calmer specimen
+
+**Date:** 2026-11-12 · **Status:** ✅ on `feature/type-specimen` 🧪
+
+- **Feedback from the designer on D16 (desktop screenshot):**
+  - The layout is unbalanced.
+  - The existing neumorphic input wasn't used.
+  - Regular / Bold / Italic appears twice.
+  - The right column isn't aligned with the canvas.
+  - The preview looks messy and poor.
+- **Decision:**
+  - **One style switcher** above both columns, shared by Draw and Preview, also on mobile. The specimen always shows the style being drawn. Two switchers could disagree: you could draw Bold while previewing Regular. The per-tab counts are gone; coverage lives in Preview.
+  - **Aligned columns:** on desktop, the Draw column starts at the top instead of centring vertically, and the preview starts level with the canvas.
+  - **Input:** the phrase field uses the app's inset neumorphic field (the same one as the old note inputs). This reverses the flat underline from D16. D14's "no neumorphism" applied to the reading surface, not to inputs.
+  - **Calmer specimen:**
+    - Ruled lines are off by default and come back with Guides. A clean surface reads as type, not as a notebook.
+    - Undrawn characters use one neutral sans, sized to the cap line. Before, they mixed a serif and a previously loaded handwriting font at different sizes.
+    - The phrase leads, and the character set sits a size smaller (70%) underneath it, still on the same sheet with no labels.
+    - The legend, coverage and the Guides toggle moved into one quiet footer row under the sheet.
+  - Old community notes keep their original rules and fallback font (D11).
+- **Why:** _To be filled in by the designer._ Note: the feedback above names the problems; the reasons for each specific fix are still the designer's to state.
+
+## D19 · The cap guide moves down to where template capitals end
+
+**Date:** 2026-11-12 · **Status:** ✅ on `feature/type-specimen` 🧪
+
+- **Found by:** the designer, using the specimen's Guides toggle from D16. The drawn capitals stopped well short of the cap line.
+- **Cause:** the canvas guides and the grey template letter disagreed.
+  - The template font was set so its whole em (264px) equalled baseline-to-cap-guide, but a capital only fills about 71% of the em.
+  - So the template capitals ended about 76px below the cap guide, while template lowercase sat right on the x guide.
+  - Tracing the template therefore produced short capitals, and the export (D10) scaled from the cap guide, so every font came out with capitals about 30% shorter than its declared cap height.
+- **Options considered:**
+  1. Lower the cap guide to the template's capitals.
+  2. Enlarge the template and move the x guide up.
+  3. Size template capitals and lowercase separately.
+- **Decision (designer):** option 1.
+  - The cap guide now sits where the template capitals end (≈189px above the baseline, previously 264px), and the x guide stays where it was.
+  - Letters already drawn by tracing the template become correctly sized.
+  - Accented capitals get more room above the cap line.
+  - The template now measures its font's real cap height, so a custom template font also lands on the guide.
+- **Effects on the export (updates D10):**
+  - Cap height is still 700 units, so the same drawing now exports about 40% larger.
+  - x-height is now 535 (was 382), winAscent/winDescent are 1439/583, and line metrics stay 900/−300.
+- **Preview:** each specimen line now crops the empty canvas space above the tallest letters, so lines sit closer together. Old community notes keep their original scale and look (D11).
+- **Learning:** making the metrics visible in Preview (Guides) exposed a fault in Draw that had been there since v1. Preview isn't only for admiring the font; it checks the whole tool.
+- **Why option 1:** _To be filled in by the designer._ Recommendation given at the time: it is the only option that keeps letters already drawn valid.
+
+## D20 · Iteration 6 of the specimen: bugs, empty state, rhythm, controls
+
+**Date:** 2026-11-13 · **Status:** ✅ on `feature/type-specimen` 🧪
+
+- **Context:** a UI/UX review of the screenshot after D19, with nothing drawn yet. The designer approved the proposed pass ("go ahead").
+- **Bugs fixed:**
+  - Words split mid-word ("jump / s"). The preview now wraps between words; only a word longer than the line breaks between letters.
+  - Every row after the first was indented by a space. Fixed.
+  - Each character group now stays on one line: the set shrinks to fit the column instead of leaving "Z" alone on a line.
+  - The coverage count included the 8 ligatures the specimen doesn't show ("0 / 114"). It now counts only visible characters ("0 / 106"). Ligatures stay drawable and still export.
+  - Two empty-state messages said the same thing. One is left.
+- **Empty state:**
+  - With nothing drawn, Preview showed a complete, solid system font, which read as a finished font.
+  - Now, until a letter is drawn in the style, a short empty state takes the specimen's place ("Your font will appear here as you draw").
+  - Missing characters render much lighter (20%, was 40%), so drawn letters clearly lead.
+- **Layout and rhythm:**
+  - The preview column is narrower (max 36rem), so it pairs with the canvas column instead of running edge to edge.
+  - One spacing scale: a fixed gap between the phrase and the character set. The set's rows have room for accents over capitals, and the empty canvas space above and below each line is cropped.
+  - The character set is now 60% of the phrase size, and smaller if needed to fit.
+- **Controls:**
+  - Guides uses the app's neumorphic toggle switch instead of the browser checkbox.
+  - Click-to-draw shows a soft cell behind the character under the pointer.
+- **Deferred:**
+  - **Canvas headroom.** About 170px of empty canvas above the cap line since D19. Fixing it changes geometry that stored drawings depend on, so it gets its own decision.
+  - **Marking the current letter in the specimen:** the designer's call, given the "stable" rule from D13.
+- **Why:** _To be filled in by the designer._ The review's reasoning is above; confirm or replace it.
+
+## D21 · Desktop: balance the canvas and the preview
+
+**Date:** 2026-11-13 · **Status:** ✅ on `feature/type-specimen` 🧪
+
+- **Feedback from the designer (screenshot with 25 letters drawn):**
+  - With the side panels closed, the preview stretches toward the right edge.
+  - The two columns aren't balanced or aligned.
+  - The preview sits toward the top instead of being centred against the canvas.
+- **Decision:**
+  - **One centred frame (max 76rem)** holds two equal columns with a fixed 3rem gap. The frame's side padding clears the fixed panel and settings buttons. The columns therefore mirror each other around the middle of the studio, with the panels open or closed, and the preview no longer runs to the edge.
+  - **Vertical centring:** both columns are centred in the viewport, so the canvas group (letter, canvas, Undo/Clear) and the preview group (phrase field, specimen, footer) share a centre line. When the preview grows taller than the screen it extends downward while the canvas stays in view.
+  - **Pinned style bar:** the shared style switcher stays pinned under the header on desktop, because both columns depend on it.
+- **Also fixed:** "Z" still wrapped onto its own line. The fit-to-width step sized the row to exactly the available width, and sub-pixel rounding pushed the last letter over. It now leaves 2% headroom.
+- **Cause found along the way:** the earlier "align the preview with the canvas top" padding (D18) never took effect, because utility classes overrode it. The vertical spacing of both columns now lives in the layout CSS only.
+- **Why:** _To be filled in by the designer._
+
+## D22 · The style switcher joins the centred block
+
+**Date:** 2026-11-13 · **Status:** ✅ on `feature/type-specimen` 🧪
+
+- **Feedback from the designer on D21:** with both columns centred, the style switcher sat pinned under the header, far above everything it controls.
+- **Options considered:**
+  - **A.** First row of the centred frame, spanning both columns.
+  - **B.** Above the canvas only.
+  - **C.** In the header.
+- **Decision:** A.
+  - The switcher, the canvas and the specimen now move as one block centred in the viewport.
+  - The switcher sits centred over the gap between the columns. Its position says it changes both sides, which is the point of having one shared switcher (D18).
+  - It no longer stays pinned on scroll; the canvas still does.
+  - Mobile is unchanged: the switcher sits under the Draw | Preview tabs.
+- **Why A:** _To be filled in by the designer._ Recommendation given at the time: B would need a second style label on the preview side, a mild return of the duplication removed in D18.
+
+## D23 · Auto Bold and Italic from Regular (spec)
+
+**Date:** 2026-11-13 · **Status:** 📐 specced; to build on `feature/auto-styles` (supersedes the D17 idea)
+
+- **Idea (designer, D17):** once Regular is drawn, generate the other styles automatically, and let people override them.
+- **How the styles are made:** letters are stored as pen strokes, so each style can be computed from Regular:
+  - Italic slants the strokes (12° by default, the angle the export already writes).
+  - Bold redraws the same strokes with a thicker pen. Spacing follows automatically, because it's measured from the ink.
+  - Bold Italic does both.
+- **Designer's answers:**
+  1. **Override per letter.** Every letter in Bold, Italic and Bold Italic starts as *auto*. Drawing it in that style makes it *custom*, and "Reset to auto" goes back.
+  2. **Auto letters follow Regular.** Redrawing a Regular letter updates its auto versions until they're overridden.
+  3. **People can adjust it:** weight for Bold, slant for Italic.
+  4. **When overriding, the auto letter is a ghost to trace**, not an editable copy of its strokes.
+- **Implications to design:**
+  - The character panel distinguishes auto from custom letters (proposal: hollow dot vs filled).
+  - The canvas shows "Auto from Regular · draw to replace".
+  - The specimen footer counts both ("75 drawn · 31 auto").
+  - Letters already drawn in Bold become custom, so nothing is lost.
+  - The download includes the whole family once Regular is complete, which fixes the uneven coverage found in D10.
+  - Bold weight needs a cap, because small counters (e, a) fill in.
+- **Open:** where the weight and slant controls live (settings panel, or next to the style switcher).
+- **Why:** _To be filled in by the designer._
+
 ---
 
 ## Open questions
 
 - D01: why the landing + community experiment was rolled back (designer to fill in).
 - How do the Draw | Preview tabs feel on a real phone, and does the canvas fit on small screens such as the iPhone SE?
-- Should Preview show a sample of the font before anything is drawn?
+- ~~Should Preview show a sample of the font before anything is drawn?~~ Answered in D20: an empty state, not a sample.
 - D12: where should writing and sharing a community note live now that Preview is a specimen?
+- Canvas headroom: crop the empty space above the cap line (geometry change; affects stored drawings).
+- Should the specimen mark the letter currently on the canvas?

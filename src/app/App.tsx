@@ -588,39 +588,36 @@ export default function App() {
             </div>
 
             <div className="studio-layout">
+            {/* Style selector, shared by Draw and Preview — on wide screens it spans both columns */}
+            <div className="studio-style-bar" role="tablist" aria-label="Font style">
+              {FONT_STYLES.map(({ key, label }) => {
+                const isActive = key === canvasState.activeStyle;
+                return (
+                  <button
+                    key={key}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => canvasState.setActiveStyle(key)}
+                    className={isActive ? "style-btn-active" : "style-btn"}
+                    style={{
+                      fontStyle:  key.includes("italic") ? "italic" : "normal",
+                      fontWeight: isActive ? 700 : key.includes("bold") ? 700 : 400,
+                    }}
+                  >
+                    {isActive && <StyleCircle />}
+                    <span>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Draw view */}
             <div
               className={[
-                "studio-draw flex-col items-center justify-center px-4 sm:px-6 pt-2 pb-6 gap-3",
+                "studio-draw flex-col items-center px-4 sm:px-6 gap-3",
                 studioView === "draw" ? "flex" : "hidden @4xl:flex",
               ].join(" ")}
             >
-
-              {/* Style selector */}
-              <div className="flex flex-wrap items-center gap-1.5 self-stretch justify-center">
-                {FONT_STYLES.map(({ key, label }) => {
-                  const count = Object.values(glyphs[key]).filter((s) => s.length > 0).length;
-                  const isActive = key === canvasState.activeStyle;
-
-                  return (
-                    <button
-                      key={key}
-                      onClick={() => canvasState.setActiveStyle(key)}
-                      className={isActive ? "style-btn-active" : "style-btn"}
-                      style={{
-                        fontStyle:  key.includes("italic") ? "italic" : "normal",
-                        fontWeight: isActive ? 700 : key.includes("bold") ? 700 : 400,
-                      }}
-                    >
-                      {isActive && <StyleCircle />}
-                      <span>{label}</span>
-                      {count > 0 && (
-                        <span className="text-[10px] opacity-50 ml-0.5">{count}</span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
 
               {/* Char nav. From md up the arrows sit on the canvas's sides instead (see below). */}
               <div className="flex items-center gap-4">
@@ -699,24 +696,28 @@ export default function App() {
             {/* Preview view */}
             <div
               className={[
-                "studio-preview w-full max-w-2xl mx-auto px-4 pt-2 pb-10 space-y-6",
+                "studio-preview w-full max-w-xl mx-auto px-4 @4xl:px-0 space-y-6",
                 studioView === "preview" ? "block" : "hidden @4xl:block",
               ].join(" ")}
             >
 
               <TypeSpecimen
                 glyphs={glyphs}
+                style={canvasState.activeStyle}
                 previewSize={previewState.previewSize}
                 letterSpacing={previewState.letterSpacing}
                 lineHeight={previewState.lineHeight}
                 scriptMode={canvasState.scriptMode}
+                onGlyphSelect={(char) => {
+                  canvasState.setCurrentChar(char);
+                  currentPoints.current = [];
+                  isDrawing.current = false;
+                  // Below the side-by-side width, jump to the canvas
+                  if (studioView === "preview") selectStudioView("draw");
+                  track("specimen_glyph_selected", { char, style: canvasState.activeStyle });
+                }}
               />
 
-              {drawnCount === 0 && (
-                <p className="text-xs text-muted-foreground text-center italic">
-                  Draw some characters — they will appear here as your font.
-                </p>
-              )}
             </div>
             </div>
           </main>

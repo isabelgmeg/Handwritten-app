@@ -16,7 +16,7 @@ Suggested branch for each item in brackets.
 
 ### 1. Font export: spacing, metrics, metadata — `fix/font-metrics`
 
-**Status (2026-11-12):** spacing, baseline, size, proportions, vertical metrics, italic flags, cap/x-height and underline are fixed on `fix/font-metrics` (decision log D10). Still open:
+**Status (2026-11-12):** the cap guide was moved to match the template capitals (decision log D19), so cap height 700 now matches what people draw. Spacing, baseline, size, proportions, vertical metrics, italic flags, cap/x-height and underline are fixed on `fix/font-metrics` (decision log D10). Still open:
 
 - **CFF FontBBox:** opentype.js writes `[0, yMin, ascender, advanceWidthMax]` and has no override. This is an upstream bug. Most renderers use the `head` bounding box instead.
 - **Coverage per style:** surface it in the download dialog (UI work).
@@ -54,7 +54,7 @@ The hero above the studio caused the scroll and touch problems: the canvas had n
 
 ### 3. Preview view content — `feature/type-specimen`
 
-**Status (2026-11-12):** the v0 type specimen replaces the note card (decision log D12): style switcher, size, type tester, live spacing test, glyph set, pangrams and waterfall. Next: refine it, and decide where note writing and sharing live.
+**Status (2026-11-12):** the type specimen replaces the note card (decision log D12–D16). It has a style switcher, a phrase (pangram or the user's own), every character, click-to-draw, optional cap/x-height guides and a coverage count. Next: align canvas and preview on desktop, and decide where note writing and sharing live.
 
 Original problems with the note preview:
 
@@ -80,6 +80,17 @@ Redesign the experience around designing a typeface rather than filling in chara
 - live type tester
 
 Needs a design pass before code.
+
+### 5b. Automatic styles from Regular — `feature/auto-styles`
+
+Specced in decision log D23:
+- Bold, Italic and Bold Italic are generated from Regular: a thicker pen, a 12° slant, or both.
+- Overrides are per letter: auto by default, custom once drawn in that style, with "Reset to auto".
+- Auto letters follow Regular.
+- Weight and slant can be adjusted.
+- Overriding shows the auto letter as a ghost to trace.
+
+To design: auto vs custom markers in the character panel, where the weight/slant controls live, and the coverage wording.
 
 ### 6. Publish handwriting as a font — `feature/font-gallery`
 
