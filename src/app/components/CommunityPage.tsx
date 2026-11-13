@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { PreviewCanvas } from "./Canvas/PreviewCanvas";
-import { fetchNotes } from "@/services/notesService";
+import { fetchNotes, noteLayoutVersion } from "@/services/notesService";
 import type { CommunityNote, NoteType } from "@/services/notesService";
 import { track } from "@/lib/analytics";
 
@@ -123,6 +123,7 @@ function NoteCard({ note, index }: { note: CommunityNote; index: number }) {
           scriptMode={note.script_mode}
           inkColor={resolvedInk}
           paddingX={8}
+          layoutVersion={noteLayoutVersion(note)}
         />
       </div>
 

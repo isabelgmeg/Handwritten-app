@@ -21,15 +21,43 @@ export const CAP_TO_BASE = BASELINE_Y - CAP_Y; // ~264
 
 // OpenType font metrics (units per em)
 export const UPM = 1000;
-export const ASCENDER = 800;
-export const DESCENDER = -200;
 
-// Italic transformation
-export const ITALIC_SHEAR = Math.tan((12 * Math.PI) / 180);
+// Uniform canvas → font scale (same on both axes, so exported glyphs keep the
+// proportions they were drawn with). The template cap line maps to
+// CAP_HEIGHT_FU and the baseline to 0.
+export const CAP_HEIGHT_FU = 700;
+export const FU_PER_PX = CAP_HEIGHT_FU / CAP_TO_BASE; // ≈ 2.65
+export const X_HEIGHT_FU = Math.round((BASELINE_Y - XHEIGHT_Y) * FU_PER_PX); // ≈ 382
+
+// Line metrics shared by every style in the family. hhea and OS/2 typo carry
+// the same values (USE_TYPO_METRICS is set), so line spacing matches on
+// macOS and Windows: 900 + 300 = 1.2 em.
+export const ASCENDER = 900;
+export const DESCENDER = -300;
+
+// Windows clipping bounds: cover the whole drawable canvas plus the widest
+// possible stroke radius, identical for every style so nothing is clipped
+// and switching styles never changes line height.
+const MAX_STROKE_RADIUS_PX = 32; // BRUSH_SIZE_MAX / 2 × brush-pen widening (1.3)
+export const WIN_ASCENT = Math.ceil((BASELINE_Y + MAX_STROKE_RADIUS_PX) * FU_PER_PX);
+export const WIN_DESCENT = Math.ceil((CANVAS_HEIGHT - BASELINE_Y + MAX_STROKE_RADIUS_PX) * FU_PER_PX);
+
+// Underline: just below the baseline, about one default stroke thick
+export const UNDERLINE_POSITION = -130;
+export const UNDERLINE_THICKNESS = 50;
+
+// Proportional spacing: blank space each side of a glyph's ink
+export const SIDE_BEARING_FU = 40;
+
+// Italic transformation (also written to the font as its italic angle)
+export const ITALIC_ANGLE_DEG = 12;
+export const ITALIC_SHEAR = Math.tan((ITALIC_ANGLE_DEG * Math.PI) / 180);
 
 // Advance widths (in font units)
+// GLYPH_ADVANCE_WIDTH_BASE only drives the on-canvas cell/anchor guides now;
+// real advances are proportional (see services/glyphLayout.ts).
 export const GLYPH_ADVANCE_WIDTH_BASE = 460;
-export const SPACE_WIDTH = 320;
+export const SPACE_WIDTH = 250;
 
 // Preview canvas settings
 export const PREVIEW_PADDING_X = 24;

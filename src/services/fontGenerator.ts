@@ -3,13 +3,26 @@ import {
   UPM,
   ASCENDER,
   DESCENDER,
-  GLYPH_ADVANCE_WIDTH_BASE,
-  CONNECT_OVERLAP,
+  WIN_ASCENT,
+  WIN_DESCENT,
+  CAP_HEIGHT_FU,
+  X_HEIGHT_FU,
+  FU_PER_PX,
+  SPACE_WIDTH,
+  ITALIC_ANGLE_DEG,
+  UNDERLINE_POSITION,
+  UNDERLINE_THICKNESS,
 } from "@/constants";
 import { GLYPH_NAMES } from "@/constants/glyphs";
 import { FONT_STYLES, ACCENT_BASE_MAP } from "@/constants/characters";
-import { canvasToFont, getEffectivePoints } from "@/utils";
-import getStroke from "perfect-freehand";
+import { canvasToFont } from "@/utils";
+import { layoutGlyph, resolveGlyphStrokes } from "./glyphLayout";
+
+// OS/2 fsSelection bits
+const FS_ITALIC = 1;
+const FS_BOLD = 32;
+const FS_REGULAR = 64;
+const FS_USE_TYPO_METRICS = 128;
 
 export interface FontGeneratorResult {
   ok: boolean;
@@ -73,7 +86,7 @@ function triggerDownload(buffer: ArrayBuffer | Uint8Array<ArrayBuffer>, fileName
 
 // Builds the OTF buffer for a single style, without touching the DOM.
 // Shared by the single-style download and the "download all" zip flow.
-async function buildStyleFont(
+export async function buildStyleFont(
   glyphs: StyleGlyphs,
   styleKey: FontStyle,
   fontName: string,
@@ -133,21 +146,20 @@ async function buildStyleFont(
 
   const styleMeta = FONT_STYLES.find((s) => s.key === styleKey)!;
   const isBold = styleKey.includes("bold");
-  const overlap = scriptMode === "connected" ? CONNECT_OVERLAP : 0;
-  const glyphAdvance = GLYPH_ADVANCE_WIDTH_BASE + letterSpacing - overlap;
+  const isItalic = styleKey.includes("italic");
   const resolvedName = fontName.trim() || "My Handwriting";
 
   const notdef = new opentype.Glyph({
     name: ".notdef",
     unicode: 0,
-    advanceWidth: glyphAdvance,
+    advanceWidth: 500,
     path: new opentype.Path(),
   });
 
   const space = new opentype.Glyph({
     name: "space",
     unicode: 32,
-    advanceWidth: 320,
+    advanceWidth: SPACE_WIDTH,
     path: new opentype.Path(),
   });
 
@@ -157,29 +169,26 @@ async function buildStyleFont(
   // Convert each drawn glyph with per-glyph error isolation
   for (const [char, ownStrokes] of drawn) {
     try {
-      // For accented chars, prepend base-char strokes so the exported glyph
-      // contains both the base letter shape and the user-drawn accent marks.
+      // Accented chars combine the base letter's strokes with the drawn accent
       const baseChar = ACCENT_BASE_MAP[char];
-      const baseStrokes: Stroke[] = baseChar ? (glyphMap[baseChar] ?? []) : [];
-      const strokes = baseChar ? [...baseStrokes, ...ownStrokes] : ownStrokes;
-
       if (baseChar && ownStrokes.length === 0) {
         warnings.push(`"${char}" has no accent marks drawn — exported using base "${baseChar}" only`);
+      }
+
+      // Same layout the preview uses: proportional advance, origin, outlines
+      const layout = layoutGlyph(resolveGlyphStrokes(char, glyphMap), letterSpacing, scriptMode);
+      if (!layout) {
+        warnings.push(`"${char}" had no valid strokes and was not included`);
+        continue;
       }
 
       const p = new opentype.Path();
       let hasValidStroke = false;
 
-      for (const stroke of strokes) {
+      for (const { points } of layout.outlines) {
         try {
-          const outline = getStroke(getEffectivePoints(stroke), stroke.options);
-          if (outline.length < 4) {
-            warnings.push(`Short stroke in "${char}" skipped (too few points)`);
-            continue;
-          }
-
-          const fp = outline.map(([x, y]: number[]) => {
-            const pt = canvasToFont(x, y);
+          const fp = points.map(([x, y]: number[]) => {
+            const pt = canvasToFont(x, y, layout.originPx);
             if (!isFinite(pt[0]) || !isFinite(pt[1])) {
               throw new Error("coordinate out of range");
             }
@@ -206,14 +215,15 @@ async function buildStyleFont(
         continue;
       }
 
-      list.push(
-        new opentype.Glyph({
-          name: GLYPH_NAMES[char] ?? char,
-          unicode: char.charCodeAt(0),
-          advanceWidth: glyphAdvance,
-          path: p,
-        }),
-      );
+      const glyph = new opentype.Glyph({
+        name: GLYPH_NAMES[char] ?? char,
+        unicode: char.charCodeAt(0),
+        advanceWidth: Math.round(layout.advancePx * FU_PER_PX),
+        path: p,
+      });
+      // hmtx left side bearing must match the outline's real xMin
+      glyph.leftSideBearing = Math.round(glyph.getBoundingBox().x1);
+      list.push(glyph);
     } catch (glyphErr) {
       warnings.push(
         `"${char}" failed to process and was skipped: ${glyphErr instanceof Error ? glyphErr.message : String(glyphErr)}`,
@@ -233,6 +243,10 @@ async function buildStyleFont(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let font: any;
   try {
+    // Vertical metrics are identical for every style, so line height never
+    // changes when switching styles, and match across platforms (hhea = typo,
+    // USE_TYPO_METRICS on). Cap/x-height come from the canvas guides, not
+    // from whichever glyphs happen to be drawn.
     font = new opentype.Font({
       familyName: resolvedName,
       styleName: styleMeta.label,
@@ -240,8 +254,30 @@ async function buildStyleFont(
       unitsPerEm: UPM,
       ascender: ASCENDER,
       descender: DESCENDER,
+      italicAngle: isItalic ? -ITALIC_ANGLE_DEG : 0,
       glyphs: list,
-    });
+      tables: {
+        os2: {
+          version: 4,
+          fsSelection:
+            (isItalic ? FS_ITALIC : 0) |
+            (isBold ? FS_BOLD : 0) |
+            (!isItalic && !isBold ? FS_REGULAR : 0) |
+            FS_USE_TYPO_METRICS,
+          sTypoAscender: ASCENDER,
+          sTypoDescender: DESCENDER,
+          sTypoLineGap: 0,
+          usWinAscent: WIN_ASCENT,
+          usWinDescent: WIN_DESCENT,
+          sCapHeight: CAP_HEIGHT_FU,
+          sxHeight: X_HEIGHT_FU,
+        },
+        post: {
+          underlinePosition: UNDERLINE_POSITION,
+          underlineThickness: UNDERLINE_THICKNESS,
+        },
+      },
+    } as ConstructorParameters<typeof opentype.Font>[0]);
   } catch (err) {
     console.error("[FontGenerator] Font construction failed:", err);
     return {

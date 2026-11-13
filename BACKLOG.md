@@ -10,7 +10,21 @@ All v2 work branches off `v2`, which was created from `develop`. Each feature ge
 
 Suggested branch for each item in brackets.
 
+### v2 release checklist
+
+- Set `PROPORTIONAL_LAYOUT_SINCE` in [notesService.ts](src/services/notesService.ts) to the moment v2 goes live. Notes created before it render with the old fixed-cell layout, so they look exactly as they were shared.
+
 ### 1. Font export: spacing, metrics, metadata — `fix/font-metrics`
+
+**Status (2026-11-12):** spacing, baseline, size, proportions, vertical metrics, italic flags, cap/x-height and underline are fixed on `fix/font-metrics` (decision log D10). Still open:
+
+- **CFF FontBBox:** opentype.js writes `[0, yMin, ascender, advanceWidthMax]` and has no override. This is an upstream bug. Most renderers use the `head` bounding box instead.
+- **Coverage per style:** surface it in the download dialog (UI work).
+- **Kerning:** now possible, since the side bearings are right.
+- ~~Old community notes~~: done. They render with the old layout (see the release checklist).
+- ~~Normal-mode cell guides~~: done. Removed; only connected script shows anchors.
+
+The original findings follow.
 
 A diagnostic of three exported fonts found the following.
 
