@@ -12,12 +12,21 @@ export const ADVANCE_CANVAS_WIDTH = 160;
 
 // Baseline positioning (as percentage of canvas height)
 export const BASELINE_Y = CANVAS_HEIGHT * 0.74; // 355.2
-export const CAP_Y = CANVAS_HEIGHT * 0.19; //  91.2
 export const XHEIGHT_Y = CANVAS_HEIGHT * 0.44; // 211.2
 export const DESC_Y = CANVAS_HEIGHT * 0.88; // 422.4
 
-// Reference height for scaling glyphs
-export const CAP_TO_BASE = BASELINE_Y - CAP_Y; // ~264
+// The grey template letter is set at this em size. Its lowercase lands on the
+// x guide; the cap guide sits where its capitals actually end.
+export const TEMPLATE_EM_PX = CANVAS_HEIGHT * 0.55; // 264
+/** Cap height / em of the default template font (Open Sans: 1462 / 2048) */
+export const TEMPLATE_CAP_RATIO = 1462 / 2048;
+export const CAP_Y = BASELINE_Y - TEMPLATE_EM_PX * TEMPLATE_CAP_RATIO; // ≈ 166.7
+
+// Reference height for scaling glyphs: baseline to cap guide
+export const CAP_TO_BASE = BASELINE_Y - CAP_Y; // ≈ 188.5
+
+/** Before v2 the cap guide sat at 19% of the canvas; old notes keep that scale */
+export const LEGACY_CAP_TO_BASE = BASELINE_Y - CANVAS_HEIGHT * 0.19; // 264
 
 // OpenType font metrics (units per em)
 export const UPM = 1000;
@@ -26,8 +35,8 @@ export const UPM = 1000;
 // proportions they were drawn with). The template cap line maps to
 // CAP_HEIGHT_FU and the baseline to 0.
 export const CAP_HEIGHT_FU = 700;
-export const FU_PER_PX = CAP_HEIGHT_FU / CAP_TO_BASE; // ≈ 2.65
-export const X_HEIGHT_FU = Math.round((BASELINE_Y - XHEIGHT_Y) * FU_PER_PX); // ≈ 382
+export const FU_PER_PX = CAP_HEIGHT_FU / CAP_TO_BASE; // ≈ 3.71
+export const X_HEIGHT_FU = Math.round((BASELINE_Y - XHEIGHT_Y) * FU_PER_PX); // ≈ 535
 
 // Line metrics shared by every style in the family. hhea and OS/2 typo carry
 // the same values (USE_TYPO_METRICS is set), so line spacing matches on

@@ -12,6 +12,8 @@ import {
   CANVAS_HEIGHT,
   ADVANCE_CANVAS_WIDTH,
   CAP_Y,
+  CAP_TO_BASE,
+  TEMPLATE_CAP_RATIO,
   XHEIGHT_Y,
   BASELINE_Y,
   DESC_Y,
@@ -170,6 +172,24 @@ export function drawConnectionGuides(
   ctx.restore();
 }
 
+const capRatios = new Map<string, number>();
+/** Cap height / em of a template font, measured once per font */
+function templateCapRatio(ctx: CanvasRenderingContext2D, templateFont: string | undefined, bold: boolean): number {
+  const key = `${templateFont ?? ""}|${bold}`;
+  const cached = capRatios.get(key);
+  if (cached) return cached;
+  const font = `${bold ? "bold " : ""}100px ${templateFont ? `'${templateFont}'` : "'Open Sans'"}`;
+  // Until the font has loaded, use the default ratio and don't cache it
+  if (!document.fonts.check(font)) return TEMPLATE_CAP_RATIO;
+  ctx.save();
+  ctx.font = `${font}, Arial, sans-serif`;
+  const ascent = ctx.measureText("H").actualBoundingBoxAscent;
+  ctx.restore();
+  const ratio = ascent > 0 ? ascent / 100 : TEMPLATE_CAP_RATIO;
+  capRatios.set(key, ratio);
+  return ratio;
+}
+
 /**
  * Draw a template character for reference
  */
@@ -182,7 +202,9 @@ export function drawTemplate(
   bold = false,
 ): void {
   ctx.save();
-  const fontSize = (BASELINE_Y - CAP_Y) * 1.0;
+  // Size the template so its capitals end exactly on the cap guide, for the
+  // default font and for any custom template font.
+  const fontSize = CAP_TO_BASE / templateCapRatio(ctx, templateFont, bold);
   const family = templateFont
     ? `'${templateFont}'`
     : "'Open Sans', Arial, sans-serif";
