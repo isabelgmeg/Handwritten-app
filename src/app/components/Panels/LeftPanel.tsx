@@ -1,7 +1,6 @@
 import { X } from "lucide-react";
 import type { FontStyle, StyleGlyphs } from "@/types";
 import { CHAR_GROUPS } from "@/constants";
-import { GlyphThumb } from "../common";
 
 interface LeftPanelProps {
   isOpen: boolean;
@@ -41,18 +40,15 @@ export function LeftPanel({
             <div className="label-caps mb-2 px-1">{group.label}</div>
             <div className="flex flex-wrap gap-1">
               {group.chars.map((char) => {
-                const strokes = glyphs[activeStyle][char];
-                const drawn = (strokes?.length ?? 0) > 0;
+                const drawn = (glyphs[activeStyle][char]?.length ?? 0) > 0;
                 const active = char === currentChar;
                 return (
                   <button
                     key={char}
                     onClick={() => onCharSelect(char)}
                     className={["char-btn", char.length > 1 ? "char-btn--wide" : "", active ? "char-btn-active" : ""].join(" ")}
-                    aria-label={char}
-                    title={char}
                   >
-                    {drawn ? <GlyphThumb strokes={strokes} /> : char}
+                    {char}
                     {drawn && !active && <span className="char-btn-dot" />}
                   </button>
                 );
